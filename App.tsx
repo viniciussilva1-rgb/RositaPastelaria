@@ -8,6 +8,13 @@ import Cart from './pages/Cart';
 import ClientArea from './pages/ClientArea';
 import Blog from './pages/Blog';
 import Admin from './pages/Admin';
+import MaintenanceMode from './components/MaintenanceMode';
+
+// ============================================
+// 🚧 MODO DE MANUTENÇÃO
+// Altere para false quando o site estiver pronto
+// ============================================
+const MAINTENANCE_MODE = true;
 
 const Footer = () => {
   const { siteConfig } = useShop();
@@ -56,6 +63,11 @@ const ScrollToTop = () => {
 }
 
 const App: React.FC = () => {
+  // Se estiver em modo de manutenção, mostrar apenas a página de manutenção
+  if (MAINTENANCE_MODE) {
+    return <MaintenanceMode />;
+  }
+
   return (
     <ShopProvider>
       <Router>
