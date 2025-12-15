@@ -7,6 +7,7 @@ import Menu from './pages/Menu';
 import Cart from './pages/Cart';
 import ClientArea from './pages/ClientArea';
 import Blog from './pages/Blog';
+import Admin from './pages/Admin';
 
 const Footer = () => {
   const { siteConfig } = useShop();
@@ -68,6 +69,7 @@ const App: React.FC = () => {
               <Route path="/carrinho" element={<Cart />} />
               <Route path="/cliente" element={<ClientArea />} />
               <Route path="/login" element={<ClientArea />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="/blog" element={<Blog />} />
             </Routes>
           </main>
