@@ -1,11 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useShop } from '../context';
-import { Package, User as UserIcon, LogOut, RefreshCcw, Settings } from 'lucide-react';
+import { Package, User as UserIcon, LogOut, RefreshCcw, Settings, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ClientArea: React.FC = () => {
   const { user, login, adminLogin, logout, orders } = useShop();
   const navigate = useNavigate();
+  
+  // Admin login states
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Redirect admin to admin panel
   useEffect(() => {
@@ -13,6 +21,21 @@ const ClientArea: React.FC = () => {
       navigate('/admin');
     }
   }, [user, navigate]);
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoading(true);
+    
+    // Simular delay de autenticação
+    setTimeout(() => {
+      const success = adminLogin(adminEmail, adminPassword);
+      if (!success) {
+        setLoginError('Email ou senha incorretos. Tente novamente.');
+      }
+      setIsLoading(false);
+    }, 500);
+  };
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -34,32 +57,116 @@ const ClientArea: React.FC = () => {
           <h2 className="text-2xl font-serif text-gray-800 mb-2">Bem-vindo à Rosita</h2>
           <p className="text-gray-500 mb-8">Faça login para aceder.</p>
           
-          <div className="space-y-3">
-            <button 
-              onClick={login}
-              className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded hover:bg-gray-50 transition-colors group"
-            >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-              <span className="text-gray-700 font-medium group-hover:text-gray-900">Entrar como Cliente</span>
-            </button>
+          {!showAdminLogin ? (
+            <div className="space-y-3">
+              <button 
+                onClick={login}
+                className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded hover:bg-gray-50 transition-colors group"
+              >
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                <span className="text-gray-700 font-medium group-hover:text-gray-900">Entrar como Cliente</span>
+              </button>
 
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">Administração</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Administração</span>
-              </div>
+
+              <button 
+                onClick={() => setShowAdminLogin(true)}
+                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded hover:bg-gold-600 transition-colors"
+              >
+                <Settings size={18} />
+                <span className="font-medium">Entrar como Admin</span>
+              </button>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                {loginError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <AlertCircle size={16} />
+                    {loginError}
+                  </div>
+                )}
+                
+                <div className="text-left">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="admin@rosita.pt"
+                      required
+                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    />
+                  </div>
+                </div>
 
-            <button 
-              onClick={adminLogin}
-              className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded hover:bg-gold-600 transition-colors"
-            >
-              <Settings size={18} />
-              <span className="font-medium">Entrar como Admin</span>
-            </button>
-          </div>
+                <div className="text-left">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Senha
+                  </label>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="••••••••••"
+                      required
+                      className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded-lg hover:bg-gold-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      A verificar...
+                    </>
+                  ) : (
+                    <>
+                      <Lock size={18} />
+                      Entrar no Painel Admin
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <button 
+                onClick={() => {
+                  setShowAdminLogin(false);
+                  setAdminEmail('');
+                  setAdminPassword('');
+                  setLoginError('');
+                }}
+                className="text-sm text-gray-500 hover:text-gold-600 transition-colors"
+              >
+                ← Voltar às opções de login
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

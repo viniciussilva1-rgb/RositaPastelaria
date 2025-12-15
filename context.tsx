@@ -34,7 +34,7 @@ interface ShopContextType {
   
   user: User | null;
   login: () => void;
-  adminLogin: () => void;
+  adminLogin: (email: string, password: string) => boolean;
   logout: () => void;
   
   orders: Order[];
@@ -186,15 +186,22 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const adminLogin = () => {
-    // Mock Admin Login
-    setUser({
-      id: 'admin01',
-      name: 'Rosita Admin',
-      email: 'admin@rosita.pt',
-      avatar: 'https://ui-avatars.com/api/?name=Rosita+Admin&background=000&color=fff',
-      isAdmin: true
-    });
+  const adminLogin = (email: string, password: string): boolean => {
+    // Credenciais do administrador
+    const ADMIN_EMAIL = 'rositapastelaria@gmail.com';
+    const ADMIN_PASSWORD = 'RositapastelariaRQ2025';
+    
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      setUser({
+        id: 'admin01',
+        name: 'Rosita Admin',
+        email: ADMIN_EMAIL,
+        avatar: 'https://ui-avatars.com/api/?name=Rosita+Admin&background=000&color=fff',
+        isAdmin: true
+      });
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
