@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote, X, Send, CheckCircle } from 'lucide-react';
 import { useShop } from '../context';
+import { Testimonial } from '../types';
 
 const Home: React.FC = () => {
-  const { addToCart, products, siteConfig, testimonials } = useShop();
+  const { addToCart, products, siteConfig, testimonials, addTestimonial } = useShop();
   
   // Destaques: Apenas 4 produtos para manter clean
   const showcaseProducts = products.slice(0, 4);
@@ -12,9 +13,51 @@ const Home: React.FC = () => {
   // Apenas testimonials aprovados
   const approvedTestimonials = testimonials.filter(t => t.isApproved);
 
+  // Modal de avaliação
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    name: '',
+    email: '',
+    rating: 5,
+    product: '',
+    text: ''
+  });
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
   // Fallback para imagens quebradas
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.src = 'https://placehold.co/600x400/F0EAD6/944D46?text=Rosita+Pastelaria';
+  };
+
+  // Submit review
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!reviewForm.name || !reviewForm.text || reviewForm.rating === 0) {
+      alert('Por favor preencha o seu nome, avaliação e comentário.');
+      return;
+    }
+
+    const newTestimonial: Testimonial = {
+      id: Date.now().toString(),
+      name: reviewForm.name,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(reviewForm.name)}&background=D4AF37&color=fff`,
+      rating: reviewForm.rating,
+      text: reviewForm.text,
+      date: new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }),
+      product: reviewForm.product,
+      isApproved: false // Avaliação pendente de aprovação
+    };
+
+    addTestimonial(newTestimonial);
+    setReviewSubmitted(true);
+    
+    // Reset após 3 segundos
+    setTimeout(() => {
+      setShowReviewModal(false);
+      setReviewSubmitted(false);
+      setReviewForm({ name: '', email: '', rating: 5, product: '', text: '' });
+    }, 3000);
   };
 
   return (
@@ -214,16 +257,156 @@ const Home: React.FC = () => {
                 <p className="font-serif text-xl text-gray-900 mb-1">Já experimentou os nossos produtos?</p>
                 <p className="text-sm text-gray-500">A sua opinião é muito importante para nós!</p>
               </div>
-              <Link 
-                to="/cliente" 
+              <button 
+                onClick={() => setShowReviewModal(true)}
                 className="px-6 py-3 bg-gold-600 text-white rounded-lg font-medium hover:bg-gold-700 transition-colors whitespace-nowrap"
               >
                 Deixar Avaliação
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modal de Avaliação do Cliente */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !reviewSubmitted && setShowReviewModal(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto">
+            
+            {/* Success State */}
+            {reviewSubmitted ? (
+              <div className="p-12 text-center">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle size={40} className="text-emerald-600" />
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-gray-900 mb-3">Obrigado pela sua avaliação!</h3>
+                <p className="text-gray-500">A sua opinião será analisada e publicada em breve.</p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="bg-gradient-to-r from-gold-500 to-gold-600 text-white p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold mb-1">Deixe a sua Avaliação</h3>
+                      <p className="text-gold-100 text-sm">Partilhe a sua experiência connosco</p>
+                    </div>
+                    <button 
+                      onClick={() => setShowReviewModal(false)}
+                      className="text-white/80 hover:text-white p-1 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleReviewSubmit} className="p-6 space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">O seu nome *</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={reviewForm.name}
+                      onChange={e => setReviewForm({...reviewForm, name: e.target.value})}
+                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                      placeholder="Ex: Maria Silva"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email (opcional)</label>
+                    <input 
+                      type="email" 
+                      value={reviewForm.email}
+                      onChange={e => setReviewForm({...reviewForm, email: e.target.value})}
+                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                      placeholder="exemplo@email.com"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Não será publicado, apenas para contacto se necessário.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">A sua avaliação *</label>
+                    <div className="flex items-center gap-1 p-3 bg-gray-50 rounded-lg">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewForm({...reviewForm, rating: star})}
+                          className="p-1 hover:scale-125 transition-transform"
+                        >
+                          <Star 
+                            size={32} 
+                            className={star <= reviewForm.rating ? 'text-gold-500 fill-gold-500' : 'text-gray-300'} 
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-3 text-sm text-gray-500 font-medium">
+                        {reviewForm.rating === 1 && 'Fraco'}
+                        {reviewForm.rating === 2 && 'Razoável'}
+                        {reviewForm.rating === 3 && 'Bom'}
+                        {reviewForm.rating === 4 && 'Muito Bom'}
+                        {reviewForm.rating === 5 && 'Excelente'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Produto (opcional)</label>
+                    <select 
+                      value={reviewForm.product}
+                      onChange={e => setReviewForm({...reviewForm, product: e.target.value})}
+                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none bg-white"
+                    >
+                      <option value="">Selecione um produto...</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">O seu comentário *</label>
+                    <textarea 
+                      required
+                      rows={4}
+                      value={reviewForm.text}
+                      onChange={e => setReviewForm({...reviewForm, text: e.target.value})}
+                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none resize-none"
+                      placeholder="Conte-nos a sua experiência com os nossos produtos..."
+                    />
+                  </div>
+
+                  <div className="bg-cream-50 p-4 rounded-lg border border-cream-200">
+                    <p className="text-xs text-gray-500">
+                      📝 A sua avaliação será revista pela nossa equipa antes de ser publicada. Agradecemos a sua paciência!
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button 
+                      type="button"
+                      onClick={() => setShowReviewModal(false)}
+                      className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-1 px-4 py-3 bg-gold-600 text-white rounded-lg font-medium hover:bg-gold-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Send size={18} />
+                      Enviar Avaliação
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Banner Imersivo (Parallax Feel) */}
       <div className="relative py-32 bg-fixed bg-center bg-cover reveal" style={{backgroundImage: `url('${siteConfig.promoBanner.image}')`}}>
