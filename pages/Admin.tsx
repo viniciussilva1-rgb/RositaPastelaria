@@ -5,10 +5,11 @@ import {
   DollarSign, Image, Layout, Phone, Check, Search,
   BarChart3, ShoppingBag, TrendingUp, Eye, EyeOff,
   Grid3X3, List, ChevronDown, Upload, RefreshCw,
-  AlertCircle, CheckCircle, Clock, Users, Cake
+  AlertCircle, CheckCircle, Clock, Users, Cake,
+  Star, MessageSquare, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Product, SiteConfig, Order } from '../types';
+import { Product, SiteConfig, Order, Testimonial } from '../types';
 
 // Categorias disponíveis
 const CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Especiais'];
@@ -17,12 +18,13 @@ const Admin: React.FC = () => {
   const { 
     user, logout, orders, products, 
     addProduct, updateProduct, deleteProduct, 
-    siteConfig, updateSiteConfig 
+    siteConfig, updateSiteConfig,
+    testimonials, addTestimonial, updateTestimonial, deleteTestimonial
   } = useShop();
   const navigate = useNavigate();
 
   // Tab States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'site'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'testimonials' | 'site'>('dashboard');
   
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +39,15 @@ const Admin: React.FC = () => {
   // Site Editor State
   const [siteForm, setSiteForm] = useState<SiteConfig>(siteConfig);
   const [siteSaved, setSiteSaved] = useState(false);
+
+  // Testimonial States
+  const [isEditingTestimonial, setIsEditingTestimonial] = useState(false);
+  const emptyTestimonial: Testimonial = { 
+    id: '', name: '', avatar: '', rating: 5, text: '', date: '', product: '', isApproved: false 
+  };
+  const [testimonialForm, setTestimonialForm] = useState<Testimonial>(emptyTestimonial);
+  const [testimonialSavedSuccess, setTestimonialSavedSuccess] = useState(false);
+  const [showDeleteTestimonialConfirm, setShowDeleteTestimonialConfirm] = useState<string | null>(null);
 
   // Statistics
   const stats = useMemo(() => {
@@ -121,6 +132,65 @@ const Admin: React.FC = () => {
     updateSiteConfig(siteForm);
     setSiteSaved(true);
     setTimeout(() => setSiteSaved(false), 3000);
+  };
+
+  // Testimonial Handlers
+  const handleEditTestimonialClick = (testimonial: Testimonial) => {
+    setTestimonialForm({ ...testimonial });
+    setTestimonialSavedSuccess(false);
+    setIsEditingTestimonial(true);
+  };
+
+  const handleNewTestimonialClick = () => {
+    setTestimonialForm({ 
+      ...emptyTestimonial, 
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+    });
+    setTestimonialSavedSuccess(false);
+    setIsEditingTestimonial(true);
+  };
+
+  const handleDeleteTestimonialClick = (id: string) => {
+    setShowDeleteTestimonialConfirm(id);
+  };
+
+  const confirmDeleteTestimonial = () => {
+    if (showDeleteTestimonialConfirm) {
+      deleteTestimonial(showDeleteTestimonialConfirm);
+      setShowDeleteTestimonialConfirm(null);
+    }
+  };
+
+  const handleTestimonialSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!testimonialForm.name || !testimonialForm.text) {
+      alert("Por favor preencha o nome e o texto da avaliação.");
+      return;
+    }
+
+    // Generate avatar if empty
+    const finalTestimonial = {
+      ...testimonialForm,
+      avatar: testimonialForm.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=D4AF37&color=fff`
+    };
+
+    if (testimonials.some(t => t.id === finalTestimonial.id)) {
+      updateTestimonial(finalTestimonial);
+    } else {
+      addTestimonial(finalTestimonial);
+    }
+    
+    setTestimonialSavedSuccess(true);
+    setTimeout(() => {
+      setIsEditingTestimonial(false);
+      setTestimonialSavedSuccess(false);
+    }, 600);
+  };
+
+  const toggleTestimonialApproval = (testimonial: Testimonial) => {
+    updateTestimonial({ ...testimonial, isApproved: !testimonial.isApproved });
   };
 
   const getStatusColor = (status: string) => {
@@ -211,6 +281,19 @@ const Admin: React.FC = () => {
           </button>
           
           <button 
+            onClick={() => setActiveTab('testimonials')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'testimonials' 
+                ? 'bg-gold-600 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <MessageSquare size={20} />
+            <span className="font-medium">Avaliações</span>
+            <span className="ml-auto bg-gray-700 text-xs px-2 py-1 rounded">{testimonials.length}</span>
+          </button>
+          
+          <button 
             onClick={() => setActiveTab('site')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               activeTab === 'site' 
@@ -255,7 +338,7 @@ const Admin: React.FC = () => {
           </button>
         </div>
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-          {(['dashboard', 'products', 'orders', 'site'] as const).map(tab => (
+          {(['dashboard', 'products', 'orders', 'testimonials', 'site'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -268,6 +351,7 @@ const Admin: React.FC = () => {
               {tab === 'dashboard' && 'Dashboard'}
               {tab === 'products' && 'Produtos'}
               {tab === 'orders' && 'Encomendas'}
+              {tab === 'testimonials' && 'Avaliações'}
               {tab === 'site' && 'Site'}
             </button>
           ))}
@@ -639,6 +723,158 @@ const Admin: React.FC = () => {
             </div>
           )}
 
+          {/* === TESTIMONIALS === */}
+          {activeTab === 'testimonials' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Avaliações de Clientes</h1>
+                  <p className="text-gray-500">Gerir feedback e depoimentos dos clientes</p>
+                </div>
+                <button 
+                  onClick={handleNewTestimonialClick}
+                  className="flex items-center gap-2 bg-gold-600 text-white px-5 py-2.5 rounded-lg hover:bg-gold-700 transition-colors font-medium shadow-lg shadow-gold-200"
+                >
+                  <Plus size={20} /> Nova Avaliação
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <ThumbsUp size={20} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{testimonials.filter(t => t.isApproved).length}</p>
+                      <p className="text-sm text-gray-500">Aprovadas</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Clock size={20} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{testimonials.filter(t => !t.isApproved).length}</p>
+                      <p className="text-sm text-gray-500">Pendentes</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gold-100 rounded-lg flex items-center justify-center">
+                      <Star size={20} className="text-gold-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {testimonials.length > 0 
+                          ? (testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length).toFixed(1)
+                          : '0'}
+                      </p>
+                      <p className="text-sm text-gray-500">Média</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonials List */}
+              <div className="space-y-4">
+                {testimonials.length === 0 ? (
+                  <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+                    <MessageSquare size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Ainda não há avaliações registadas.</p>
+                  </div>
+                ) : (
+                  testimonials.map(testimonial => (
+                    <div 
+                      key={testimonial.id} 
+                      className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${
+                        testimonial.isApproved ? 'border-gray-100' : 'border-amber-200 bg-amber-50/30'
+                      }`}
+                    >
+                      <div className="p-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          {/* Avatar & Info */}
+                          <div className="flex items-start gap-4 flex-1">
+                            <img 
+                              src={testimonial.avatar} 
+                              alt={testimonial.name}
+                              className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
+                              onError={handleThumbnailError}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3 mb-1">
+                                <h3 className="font-semibold text-gray-900">{testimonial.name}</h3>
+                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                                  testimonial.isApproved 
+                                    ? 'bg-emerald-100 text-emerald-700' 
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {testimonial.isApproved ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                  {testimonial.isApproved ? 'Aprovada' : 'Pendente'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="flex gap-0.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star 
+                                      key={i} 
+                                      size={14} 
+                                      className={i < testimonial.rating ? 'text-gold-500 fill-gold-500' : 'text-gray-200'} 
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-500">{testimonial.date}</span>
+                                {testimonial.product && (
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                    {testimonial.product}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-gray-600 text-sm leading-relaxed">"{testimonial.text}"</p>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex sm:flex-col items-center gap-2 sm:border-l sm:pl-4 border-gray-100">
+                            <button 
+                              onClick={() => toggleTestimonialApproval(testimonial)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                testimonial.isApproved 
+                                  ? 'text-amber-600 hover:bg-amber-50' 
+                                  : 'text-emerald-600 hover:bg-emerald-50'
+                              }`}
+                              title={testimonial.isApproved ? 'Desaprovar' : 'Aprovar'}
+                            >
+                              {testimonial.isApproved ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                            <button 
+                              onClick={() => handleEditTestimonialClick(testimonial)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTestimonialClick(testimonial.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* === SITE EDITOR === */}
           {activeTab === 'site' && (
             <div className="space-y-6">
@@ -983,6 +1219,178 @@ const Admin: React.FC = () => {
                 </button>
                 <button 
                   onClick={confirmDelete}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  Sim, Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Testimonial Edit Modal */}
+      {isEditingTestimonial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditingTestimonial(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gray-900 text-white p-5 flex justify-between items-center z-10">
+              <div>
+                <h3 className="font-bold text-lg">
+                  {testimonials.some(t => t.id === testimonialForm.id) ? 'Editar Avaliação' : 'Nova Avaliação'}
+                </h3>
+                <p className="text-gray-400 text-sm">Preencha os dados do cliente e avaliação</p>
+              </div>
+              <button 
+                onClick={() => setIsEditingTestimonial(false)} 
+                className="text-gray-400 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleTestimonialSave} className="p-6 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Cliente *</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={testimonialForm.name}
+                    onChange={e => setTestimonialForm({...testimonialForm, name: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    placeholder="Ex: Maria Silva"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                  <input 
+                    type="text" 
+                    value={testimonialForm.date}
+                    onChange={e => setTestimonialForm({...testimonialForm, date: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    placeholder="Ex: 15 Dez 2025"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">URL do Avatar (opcional)</label>
+                <input 
+                  type="url" 
+                  value={testimonialForm.avatar}
+                  onChange={e => setTestimonialForm({...testimonialForm, avatar: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg p-3 font-mono text-sm focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                  placeholder="Deixe vazio para gerar automaticamente"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Avaliação *</label>
+                  <div className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setTestimonialForm({...testimonialForm, rating: star})}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star 
+                          size={24} 
+                          className={star <= testimonialForm.rating ? 'text-gold-500 fill-gold-500' : 'text-gray-200'} 
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm text-gray-500">{testimonialForm.rating}/5</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Produto (opcional)</label>
+                  <select 
+                    value={testimonialForm.product}
+                    onChange={e => setTestimonialForm({...testimonialForm, product: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none bg-white"
+                  >
+                    <option value="">Nenhum produto específico</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Texto da Avaliação *</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={testimonialForm.text}
+                  onChange={e => setTestimonialForm({...testimonialForm, text: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none resize-none"
+                  placeholder="O que o cliente disse sobre a experiência..."
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="isApproved"
+                  checked={testimonialForm.isApproved}
+                  onChange={e => setTestimonialForm({...testimonialForm, isApproved: e.target.checked})}
+                  className="w-5 h-5 rounded border-gray-300 text-gold-600 focus:ring-gold-500"
+                />
+                <label htmlFor="isApproved" className="flex-1">
+                  <span className="font-medium text-gray-900">Aprovar avaliação</span>
+                  <p className="text-sm text-gray-500">Avaliações aprovadas aparecem na página inicial</p>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditingTestimonial(false)}
+                  className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className={`px-8 py-3 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${
+                    testimonialSavedSuccess 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'bg-gold-600 text-white hover:bg-gold-700 shadow-gold-200'
+                  }`}
+                >
+                  {testimonialSavedSuccess ? <CheckCircle size={20} /> : <Save size={20} />}
+                  {testimonialSavedSuccess ? 'Guardado!' : 'Guardar Avaliação'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Testimonial Confirmation Modal */}
+      {showDeleteTestimonialConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteTestimonialConfirm(null)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative z-10">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} className="text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Eliminar Avaliação?</h3>
+              <p className="text-gray-500 mb-6">Esta ação não pode ser revertida. A avaliação será removida permanentemente.</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteTestimonialConfirm(null)}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDeleteTestimonial}
                   className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
                 >
                   Sim, Eliminar

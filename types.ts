@@ -61,3 +61,15 @@ export interface SiteConfig {
     scheduleWeekend: string;
   };
 }
+
+// Feedback/Avaliações dos Clientes
+export interface Testimonial {
+  id: string;
+  name: string;
+  avatar: string;
+  rating: number;
+  text: string;
+  date: string;
+  product?: string;
+  isApproved: boolean;
+}

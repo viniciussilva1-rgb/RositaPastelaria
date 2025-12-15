@@ -1,4 +1,4 @@
-import { Product, BlogPost, SiteConfig } from './types';
+import { Product, BlogPost, SiteConfig, Testimonial } from './types';
 
 export const INITIAL_SITE_CONFIG: SiteConfig = {
   hero: {
@@ -118,5 +118,58 @@ export const BLOG_POSTS: BlogPost[] = [
     date: '20 Out 2023',
     image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=800&auto=format&fit=crop',
     content: '...'
+  }
+];
+
+export const INITIAL_TESTIMONIALS: Testimonial[] = [
+  {
+    id: '1',
+    name: 'Ana Rodrigues',
+    avatar: 'https://ui-avatars.com/api/?name=Ana+Rodrigues&background=D4AF37&color=fff',
+    rating: 5,
+    text: 'O bolo de aniversário que encomendei para a minha filha ficou simplesmente perfeito! Bonito, saboroso e fresco. A equipa da Rosita foi muito atenciosa e profissional. Recomendo vivamente!',
+    date: '10 Dez 2025',
+    product: 'Bolo de Aniversário Clássico',
+    isApproved: true
+  },
+  {
+    id: '2',
+    name: 'João Pereira',
+    avatar: 'https://ui-avatars.com/api/?name=Joao+Pereira&background=1a1a1a&color=fff',
+    rating: 5,
+    text: 'Encomendei os salgados para o batizado do meu filho e todos os convidados adoraram! Os rissóis de camarão estavam divinos. Já é a minha pastelaria de referência para eventos.',
+    date: '05 Dez 2025',
+    product: 'Box Festa Salgados',
+    isApproved: true
+  },
+  {
+    id: '3',
+    name: 'Maria Santos',
+    avatar: 'https://ui-avatars.com/api/?name=Maria+Santos&background=8B4513&color=fff',
+    rating: 5,
+    text: 'Pastelaria com qualidade excecional! Os pastéis de nata são os melhores que já provei em Lisboa. O atendimento é sempre simpático e o ambiente é muito acolhedor.',
+    date: '28 Nov 2025',
+    product: 'Pastel de Nata',
+    isApproved: true
+  },
+  {
+    id: '4',
+    name: 'Carlos Martins',
+    avatar: 'https://ui-avatars.com/api/?name=Carlos+Martins&background=2563eb&color=fff',
+    rating: 4,
+    text: 'Excelente serviço! Encomendei um kit de festa com pouca antecedência e conseguiram entregar tudo a tempo e com muita qualidade. Os macarons são fantásticos!',
+    date: '20 Nov 2025',
+    product: 'Kits Festa',
+    isApproved: true
+  },
+  {
+    id: '5',
+    name: 'Sofia Almeida',
+    avatar: 'https://ui-avatars.com/api/?name=Sofia+Almeida&background=ec4899&color=fff',
+    rating: 5,
+    text: 'O bolo Red Velvet que encomendei para o meu casamento foi um sucesso absoluto! Todos os convidados quiseram saber onde tinha comprado. Obrigada Rosita!',
+    date: '15 Nov 2025',
+    product: 'Bolo Red Velvet Festivo',
+    isApproved: true
   }
 ];

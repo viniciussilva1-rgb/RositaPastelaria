@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag, Star, Clock, Heart } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote } from 'lucide-react';
 import { useShop } from '../context';
 
 const Home: React.FC = () => {
-  const { addToCart, products, siteConfig } = useShop();
+  const { addToCart, products, siteConfig, testimonials } = useShop();
   
   // Destaques: Apenas 4 produtos para manter clean
   const showcaseProducts = products.slice(0, 4);
+
+  // Apenas testimonials aprovados
+  const approvedTestimonials = testimonials.filter(t => t.isApproved);
 
   // Fallback para imagens quebradas
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -137,6 +140,87 @@ const Home: React.FC = () => {
              <Link to="/produtos" className="inline-block border-b border-gray-900 pb-1 text-sm uppercase tracking-widest hover:text-gold-600 hover:border-gold-600 transition-all">
               Ver Coleção Completa
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials / Feedback Section */}
+      <div className="py-24 bg-cream-50 reveal">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center mb-16">
+            <span className="text-gold-500 text-[0.65rem] font-bold uppercase tracking-[0.3em] mb-3">O Que Dizem de Nós</span>
+            <h2 className="text-4xl md:text-5xl font-serif text-gray-900 text-center mb-4">Feedback dos Clientes</h2>
+            <p className="text-gray-500 text-center max-w-2xl">
+              A satisfação dos nossos clientes é a nossa maior recompensa. Veja o que dizem sobre as nossas criações.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {approvedTestimonials.slice(0, 6).map((testimonial) => (
+              <div 
+                key={testimonial.id} 
+                className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 group relative overflow-hidden"
+              >
+                {/* Quote Icon */}
+                <div className="absolute top-6 right-6 text-gold-200 opacity-50 group-hover:opacity-100 transition-opacity">
+                  <Quote size={40} />
+                </div>
+                
+                {/* Rating Stars */}
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      size={18} 
+                      className={i < testimonial.rating ? 'text-gold-500 fill-gold-500' : 'text-gray-200'} 
+                    />
+                  ))}
+                </div>
+
+                {/* Testimonial Text */}
+                <p className="text-gray-600 leading-relaxed mb-6 relative z-10">
+                  "{testimonial.text}"
+                </p>
+
+                {/* Product Tag */}
+                {testimonial.product && (
+                  <div className="mb-6">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gold-50 text-gold-700 border border-gold-200">
+                      {testimonial.product}
+                    </span>
+                  </div>
+                )}
+
+                {/* Author */}
+                <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
+                  <img 
+                    src={testimonial.avatar} 
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-gold-100"
+                  />
+                  <div>
+                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                    <p className="text-sm text-gray-500">{testimonial.date}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="mt-16 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-white px-8 py-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="text-center sm:text-left">
+                <p className="font-serif text-xl text-gray-900 mb-1">Já experimentou os nossos produtos?</p>
+                <p className="text-sm text-gray-500">A sua opinião é muito importante para nós!</p>
+              </div>
+              <Link 
+                to="/cliente" 
+                className="px-6 py-3 bg-gold-600 text-white rounded-lg font-medium hover:bg-gold-700 transition-colors whitespace-nowrap"
+              >
+                Deixar Avaliação
+              </Link>
+            </div>
           </div>
         </div>
       </div>

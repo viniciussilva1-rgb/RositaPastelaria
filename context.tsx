@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Product, User, Order, SiteConfig } from './types';
-import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG } from './constants';
+import { CartItem, Product, User, Order, SiteConfig, Testimonial } from './types';
+import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS } from './constants';
 
 interface ShopContextType {
   products: Product[];
@@ -10,6 +10,11 @@ interface ShopContextType {
   
   siteConfig: SiteConfig;
   updateSiteConfig: (config: SiteConfig) => void;
+
+  testimonials: Testimonial[];
+  addTestimonial: (testimonial: Testimonial) => void;
+  updateTestimonial: (testimonial: Testimonial) => void;
+  deleteTestimonial: (id: string) => void;
 
   cart: CartItem[];
   addToCart: (product: Product) => void;
@@ -42,6 +47,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return saved ? JSON.parse(saved) : INITIAL_SITE_CONFIG;
   });
 
+  // Testimonials State
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
+    const saved = localStorage.getItem('rosita_testimonials');
+    return saved ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
+  });
+
   // Cart State
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('rosita_cart');
@@ -68,6 +79,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     localStorage.setItem('rosita_site_config', JSON.stringify(siteConfig));
   }, [siteConfig]);
+
+  useEffect(() => {
+    localStorage.setItem('rosita_testimonials', JSON.stringify(testimonials));
+  }, [testimonials]);
 
   useEffect(() => {
     localStorage.setItem('rosita_cart', JSON.stringify(cart));
@@ -101,6 +116,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Site Config Actions
   const updateSiteConfig = (newConfig: SiteConfig) => {
     setSiteConfig(newConfig);
+  };
+
+  // Testimonial Actions
+  const addTestimonial = (testimonial: Testimonial) => {
+    setTestimonials(prev => [...prev, testimonial]);
+  };
+
+  const updateTestimonial = (updatedTestimonial: Testimonial) => {
+    setTestimonials(prev => prev.map(t => t.id === updatedTestimonial.id ? updatedTestimonial : t));
+  };
+
+  const deleteTestimonial = (id: string) => {
+    setTestimonials(prev => prev.filter(t => t.id !== id));
   };
 
   // Cart Actions
@@ -182,6 +210,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <ShopContext.Provider value={{
       products, addProduct, updateProduct, deleteProduct,
       siteConfig, updateSiteConfig,
+      testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
       orders, placeOrder
