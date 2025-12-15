@@ -6,10 +6,12 @@ import {
   BarChart3, ShoppingBag, TrendingUp, Eye, EyeOff,
   Grid3X3, List, ChevronDown, Upload, RefreshCw,
   AlertCircle, CheckCircle, Clock, Users, Cake,
-  Star, MessageSquare, ThumbsUp, ThumbsDown
+  Star, MessageSquare, ThumbsUp, ThumbsDown,
+  Truck, Store, MapPin, Calendar, Filter, ChevronRight,
+  Play, Printer, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Product, SiteConfig, Order, Testimonial } from '../types';
+import { Product, SiteConfig, Order, Testimonial, OrderStatus } from '../types';
 
 // Categorias disponíveis
 const CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Especiais'];
@@ -19,7 +21,8 @@ const Admin: React.FC = () => {
     user, logout, orders, products, 
     addProduct, updateProduct, deleteProduct, 
     siteConfig, updateSiteConfig,
-    testimonials, addTestimonial, updateTestimonial, deleteTestimonial
+    testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
+    updateOrder, deleteOrder
   } = useShop();
   const navigate = useNavigate();
 
@@ -49,6 +52,13 @@ const Admin: React.FC = () => {
   const [testimonialSavedSuccess, setTestimonialSavedSuccess] = useState(false);
   const [showDeleteTestimonialConfirm, setShowDeleteTestimonialConfirm] = useState<string | null>(null);
 
+  // Order States
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [orderDeliveryFilter, setOrderDeliveryFilter] = useState<'all' | 'delivery' | 'pickup'>('all');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showDeleteOrderConfirm, setShowDeleteOrderConfirm] = useState<string | null>(null);
+
   // Statistics
   const stats = useMemo(() => {
     const totalProducts = products.length;
@@ -72,6 +82,31 @@ const Admin: React.FC = () => {
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, filterCategory]);
+
+  // Filtered Orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchesSearch = o.id.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+                           o.items.some(item => item.name.toLowerCase().includes(orderSearchQuery.toLowerCase()));
+      const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+      const matchesDelivery = orderDeliveryFilter === 'all' || o.deliveryType === orderDeliveryFilter;
+      return matchesSearch && matchesStatus && matchesDelivery;
+    });
+  }, [orders, orderSearchQuery, orderStatusFilter, orderDeliveryFilter]);
+
+  // Order Statistics
+  const orderStats = useMemo(() => {
+    const pending = orders.filter(o => o.status === 'Pendente').length;
+    const inProduction = orders.filter(o => o.status === 'Em Produção').length;
+    const delivered = orders.filter(o => o.status === 'Entregue').length;
+    const todayOrders = orders.filter(o => {
+      const today = new Date().toLocaleDateString('pt-PT');
+      return o.deliveryDate === today;
+    }).length;
+    const deliveries = orders.filter(o => o.deliveryType === 'delivery').length;
+    const pickups = orders.filter(o => o.deliveryType === 'pickup').length;
+    return { pending, inProduction, delivered, todayOrders, deliveries, pickups };
+  }, [orders]);
 
   // Handlers
   const handleThumbnailError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
@@ -668,9 +703,118 @@ const Admin: React.FC = () => {
           {/* === ORDERS === */}
           {activeTab === 'orders' && (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Encomendas</h1>
-                <p className="text-gray-500">Gerir e acompanhar todas as encomendas</p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Gestão de Encomendas</h1>
+                  <p className="text-gray-500">Gerir, acompanhar e atualizar estado das encomendas</p>
+                </div>
+              </div>
+
+              {/* Order Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Clock size={20} className="text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.pending}</p>
+                      <p className="text-xs text-gray-500">Pendentes</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Play size={20} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.inProduction}</p>
+                      <p className="text-xs text-gray-500">Em Produção</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle size={20} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.delivered}</p>
+                      <p className="text-xs text-gray-500">Entregues</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Calendar size={20} className="text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.todayOrders}</p>
+                      <p className="text-xs text-gray-500">Para Hoje</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
+                      <Truck size={20} className="text-rose-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.deliveries}</p>
+                      <p className="text-xs text-gray-500">Entregas</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                      <Store size={20} className="text-cyan-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{orderStats.pickups}</p>
+                      <p className="text-xs text-gray-500">Levantamentos</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar por ID ou produto..."
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={orderStatusFilter}
+                      onChange={(e) => setOrderStatusFilter(e.target.value as 'all' | OrderStatus)}
+                      className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">Todos os Estados</option>
+                      <option value="Pendente">🟡 Pendente</option>
+                      <option value="Em Produção">🔵 Em Produção</option>
+                      <option value="Entregue">🟢 Entregue</option>
+                    </select>
+                    <select
+                      value={orderDeliveryFilter}
+                      onChange={(e) => setOrderDeliveryFilter(e.target.value as 'all' | 'delivery' | 'pickup')}
+                      className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">Todos os Tipos</option>
+                      <option value="delivery">🚚 Entrega</option>
+                      <option value="pickup">🏪 Levantamento</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {orders.length === 0 ? (
@@ -678,46 +822,222 @@ const Admin: React.FC = () => {
                   <ShoppingBag size={48} className="text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Ainda não há encomendas registadas.</p>
                 </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+                  <Filter size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Nenhuma encomenda corresponde aos filtros.</p>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map(order => (
+                  {filteredOrders.map(order => (
                     <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                      <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50">
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <span className="font-bold text-gray-900">Encomenda #{order.id}</span>
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(order.status)}`}>
-                              {getStatusIcon(order.status)}
-                              {order.status}
-                            </span>
+                      {/* Order Header */}
+                      <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50">
+                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-3 mb-2">
+                              <span className="font-bold text-lg text-gray-900">#{order.id}</span>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(order.status)}`}>
+                                {getStatusIcon(order.status)}
+                                {order.status}
+                              </span>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ${
+                                order.deliveryType === 'delivery' 
+                                  ? 'bg-rose-100 text-rose-700' 
+                                  : 'bg-cyan-100 text-cyan-700'
+                              }`}>
+                                {order.deliveryType === 'delivery' ? <Truck size={12} /> : <Store size={12} />}
+                                {order.deliveryType === 'delivery' ? 'Entrega' : 'Levantamento'}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                              <span>📅 Pedido: {order.date}</span>
+                              <span>🗓️ Entrega: {order.deliveryDate} às {order.deliveryTime}</span>
+                              <span>💳 {order.paymentMethod}</span>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">{order.date} • {order.paymentMethod}</p>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-gold-600">€{order.total.toFixed(2)}</p>
+                            {order.deliveryFee && order.deliveryFee > 0 && (
+                              <p className="text-xs text-gray-500">inclui €{order.deliveryFee.toFixed(2)} de entrega</p>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-2xl font-bold text-gold-600">€{order.total.toFixed(2)}</p>
                       </div>
                       
-                      <div className="p-6">
+                      {/* Order Actions - Status Update */}
+                      <div className="px-4 sm:px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-gray-600">Atualizar Estado:</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => updateOrder({ ...order, status: 'Pendente' })}
+                            disabled={order.status === 'Pendente'}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                              order.status === 'Pendente'
+                                ? 'bg-amber-100 text-amber-700 cursor-default'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50'
+                            }`}
+                          >
+                            <Clock size={14} /> Pendente
+                          </button>
+                          <button
+                            onClick={() => updateOrder({ ...order, status: 'Em Produção' })}
+                            disabled={order.status === 'Em Produção'}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                              order.status === 'Em Produção'
+                                ? 'bg-blue-100 text-blue-700 cursor-default'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50'
+                            }`}
+                          >
+                            <Play size={14} /> Em Produção
+                          </button>
+                          <button
+                            onClick={() => updateOrder({ ...order, status: 'Entregue' })}
+                            disabled={order.status === 'Entregue'}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                              order.status === 'Entregue'
+                                ? 'bg-emerald-100 text-emerald-700 cursor-default'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:bg-emerald-50'
+                            }`}
+                          >
+                            <CheckCircle size={14} /> Entregue
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Delivery Info */}
+                      {order.deliveryType === 'delivery' && order.deliveryAddress && (
+                        <div className="px-4 sm:px-6 py-3 bg-rose-50/50 border-b border-gray-100">
+                          <div className="flex items-start gap-2 text-sm">
+                            <MapPin size={16} className="text-rose-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-gray-700">Morada de Entrega:</span>
+                              <span className="text-gray-600 ml-2">{order.deliveryAddress}</span>
+                              {order.deliveryDistance && (
+                                <span className="text-gray-400 ml-2">({order.deliveryDistance}km)</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Order Items */}
+                      <div className="p-4 sm:p-6">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Itens do Pedido</h4>
                         <table className="w-full">
                           <thead>
-                            <tr className="text-xs text-gray-500 uppercase">
+                            <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
                               <th className="text-left pb-3">Item</th>
                               <th className="text-center pb-3">Qtd</th>
+                              <th className="text-right pb-3">Preço Un.</th>
                               <th className="text-right pb-3">Subtotal</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
                             {order.items.map((item, idx) => (
                               <tr key={idx}>
-                                <td className="py-3 text-gray-800">{item.name}</td>
+                                <td className="py-3 text-gray-800 font-medium">{item.name}</td>
                                 <td className="py-3 text-center text-gray-600">{item.quantity}</td>
+                                <td className="py-3 text-right text-gray-500">€{item.price.toFixed(2)}</td>
                                 <td className="py-3 text-right font-medium text-gray-900">€{(item.price * item.quantity).toFixed(2)}</td>
                               </tr>
                             ))}
                           </tbody>
+                          <tfoot className="border-t border-gray-200">
+                            {order.subtotal && order.deliveryFee && order.deliveryFee > 0 && (
+                              <>
+                                <tr>
+                                  <td colSpan={3} className="pt-3 text-right text-gray-500">Subtotal Produtos:</td>
+                                  <td className="pt-3 text-right text-gray-700">€{order.subtotal.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                  <td colSpan={3} className="py-1 text-right text-gray-500">Taxa de Entrega:</td>
+                                  <td className="py-1 text-right text-gray-700">€{order.deliveryFee.toFixed(2)}</td>
+                                </tr>
+                              </>
+                            )}
+                            <tr>
+                              <td colSpan={3} className="pt-2 text-right font-bold text-gray-800">Total:</td>
+                              <td className="pt-2 text-right font-bold text-xl text-gold-600">€{order.total.toFixed(2)}</td>
+                            </tr>
+                          </tfoot>
                         </table>
+                      </div>
+
+                      {/* Order Footer Actions */}
+                      <div className="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-between items-center gap-3">
+                        <button
+                          onClick={() => setShowDeleteOrderConfirm(order.id)}
+                          className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1.5"
+                        >
+                          <Trash2 size={14} /> Eliminar Encomenda
+                        </button>
+                        <button
+                          onClick={() => {
+                            const printContent = `
+ROSITA PASTELARIA - ENCOMENDA #${order.id}
+========================================
+Data do Pedido: ${order.date}
+Data de Entrega: ${order.deliveryDate} às ${order.deliveryTime}
+Tipo: ${order.deliveryType === 'delivery' ? 'Entrega ao Domicílio' : 'Levantamento na Loja'}
+${order.deliveryAddress ? `Morada: ${order.deliveryAddress}` : ''}
+Pagamento: ${order.paymentMethod}
+Estado: ${order.status}
+----------------------------------------
+ITENS:
+${order.items.map(item => `${item.quantity}x ${item.name} - €${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+----------------------------------------
+${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2)}\nTaxa Entrega: €${order.deliveryFee.toFixed(2)}\n` : ''}TOTAL: €${order.total.toFixed(2)}
+========================================
+                            `;
+                            const win = window.open('', '', 'width=400,height=600');
+                            win?.document.write(`<pre style="font-family: monospace; font-size: 12px;">${printContent}</pre>`);
+                            win?.print();
+                          }}
+                          className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1.5"
+                        >
+                          <Printer size={14} /> Imprimir
+                        </button>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Delete Order Confirmation Modal */}
+              {showDeleteOrderConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <AlertCircle size={24} className="text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">Eliminar Encomenda</h3>
+                        <p className="text-sm text-gray-500">#{showDeleteOrderConfirm}</p>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 mb-6">
+                      Tem a certeza que deseja eliminar esta encomenda? Esta ação não pode ser revertida.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowDeleteOrderConfirm(null)}
+                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          deleteOrder(showDeleteOrderConfirm);
+                          setShowDeleteOrderConfirm(null);
+                        }}
+                        className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

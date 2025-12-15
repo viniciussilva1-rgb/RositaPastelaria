@@ -39,6 +39,8 @@ interface ShopContextType {
   
   orders: Order[];
   placeOrder: (paymentMethod: string, deliveryInfo: DeliveryInfo) => void;
+  updateOrder: (order: Order) => void;
+  deleteOrder: (orderId: string) => void;
   getUnavailableDeliverySlots: (date: string) => string[];
 }
 
@@ -237,6 +239,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log("Order placed:", newOrder);
   };
 
+  const updateOrder = (updatedOrder: Order) => {
+    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+  };
+
+  const deleteOrder = (orderId: string) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+  };
+
   return (
     <ShopContext.Provider value={{
       products, addProduct, updateProduct, deleteProduct,
@@ -244,7 +254,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
-      orders, placeOrder, getUnavailableDeliverySlots
+      orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots
     }}>
       {children}
     </ShopContext.Provider>
