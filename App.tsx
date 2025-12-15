@@ -1,0 +1,81 @@
+import React from 'react';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { ShopProvider, useShop } from './context';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Menu from './pages/Menu';
+import Cart from './pages/Cart';
+import ClientArea from './pages/ClientArea';
+import Blog from './pages/Blog';
+
+const Footer = () => {
+  const { siteConfig } = useShop();
+
+  return (
+    <footer className="bg-gray-900 text-white pt-16 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div>
+            <span className="font-serif text-2xl font-bold tracking-wider mb-6 block text-gold-400">ROSITA</span>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Pastelaria especializada em bolos de aniversário e salgados para festas. 
+              Tradição e qualidade para os seus momentos especiais desde 1985.
+            </p>
+          </div>
+          <div>
+            <h4 className="text-gold-500 font-bold uppercase tracking-widest text-xs mb-6">Encomendas</h4>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li>{siteConfig.contact.address}</li>
+              <li>{siteConfig.contact.phone}</li>
+              <li>{siteConfig.contact.email}</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-gold-500 font-bold uppercase tracking-widest text-xs mb-6">Levantamentos</h4>
+            <ul className="space-y-3 text-gray-400 text-sm">
+              <li className="flex justify-between"><span>Seg - Sáb</span> <span>{siteConfig.contact.scheduleWeek}</span></li>
+              <li className="flex justify-between"><span>Domingo</span> <span>{siteConfig.contact.scheduleWeekend}</span></li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-gray-800 pt-8 text-center text-xs text-gray-500">
+          &copy; {new Date().getFullYear()} Rosita Pastelaria. Todos os direitos reservados.
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
+const App: React.FC = () => {
+  return (
+    <ShopProvider>
+      <Router>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen">
+          <Navbar />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/produtos" element={<Menu />} />
+              <Route path="/carrinho" element={<Cart />} />
+              <Route path="/cliente" element={<ClientArea />} />
+              <Route path="/login" element={<ClientArea />} />
+              <Route path="/blog" element={<Blog />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </ShopProvider>
+  );
+};
+
+export default App;
