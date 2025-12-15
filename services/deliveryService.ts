@@ -1,10 +1,10 @@
 // Serviço de cálculo de distância e taxa de entrega
 
-// Localização da Rosita Pastelaria
+// Localização da Rosita Pastelaria - Santa Bárbara, Lourinhã
 const STORE_LOCATION = {
-  lat: 39.1929713,
-  lng: -9.3121405,
-  address: 'Rua de São Sebastião N111, Portugal'
+  lat: 39.2416,
+  lng: -9.3131,
+  address: 'Rua de São Sebastião 111, Santa Bárbara, Lourinhã'
 };
 
 // Configuração de taxas de entrega
@@ -49,30 +49,57 @@ function toRad(deg: number): number {
 // Geocodificação usando OpenStreetMap Nominatim (gratuito)
 export async function geocodeAddress(postalCode: string, street: string): Promise<GeocodingResult> {
   try {
-    // Construir query de busca
-    const query = encodeURIComponent(`${street}, ${postalCode}, Portugal`);
+    // Formatar código postal para padrão português (XXXX-XXX)
+    const formattedPostalCode = postalCode.replace(/\s/g, '').replace(/(\d{4})-?(\d{3})/, '$1-$2');
     
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=pt`,
-      {
-        headers: {
-          'Accept-Language': 'pt-PT',
-          'User-Agent': 'RositaPastelaria/1.0'
-        }
-      }
-    );
+    // Tentar múltiplas queries para melhor precisão
+    const queries = [
+      `${street}, ${formattedPostalCode}, Portugal`,
+      `${street}, Lourinhã, Portugal`,
+      `${formattedPostalCode}, Portugal`
+    ];
 
-    if (!response.ok) {
-      throw new Error('Erro ao contactar serviço de geocodificação');
+    for (const queryStr of queries) {
+      const query = encodeURIComponent(queryStr);
+      
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=pt`,
+          {
+            headers: {
+              'Accept-Language': 'pt-PT',
+              'User-Agent': 'RositaPastelaria/1.0'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          continue;
+        }
+
+        const data = await response.json();
+
+        if (data.length > 0) {
+          console.log('Geocoding encontrado:', data[0].display_name);
+          return {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+            displayName: data[0].display_name,
+            success: true
+          };
+        }
+      } catch (e) {
+        console.log('Tentativa de geocoding falhou:', queryStr);
+      }
+      
+      // Pequena pausa para respeitar rate limit do Nominatim
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    const data = await response.json();
-
-    if (data.length === 0) {
-      // Tentar apenas com código postal
-      const postalQuery = encodeURIComponent(`${postalCode}, Portugal`);
-      const postalResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${postalQuery}&format=json&limit=1&countrycodes=pt`,
+    // Se nenhuma query funcionou, tentar busca estruturada por código postal
+    try {
+      const structuredResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(formattedPostalCode)}&country=Portugal&format=json&limit=1`,
         {
           headers: {
             'Accept-Language': 'pt-PT',
@@ -81,31 +108,28 @@ export async function geocodeAddress(postalCode: string, street: string): Promis
         }
       );
 
-      const postalData = await postalResponse.json();
-
-      if (postalData.length === 0) {
-        return {
-          lat: 0,
-          lng: 0,
-          displayName: '',
-          success: false,
-          error: 'Não foi possível encontrar a morada. Verifique o código postal.'
-        };
+      if (structuredResponse.ok) {
+        const structuredData = await structuredResponse.json();
+        if (structuredData.length > 0) {
+          console.log('Geocoding por código postal:', structuredData[0].display_name);
+          return {
+            lat: parseFloat(structuredData[0].lat),
+            lng: parseFloat(structuredData[0].lon),
+            displayName: structuredData[0].display_name,
+            success: true
+          };
+        }
       }
-
-      return {
-        lat: parseFloat(postalData[0].lat),
-        lng: parseFloat(postalData[0].lon),
-        displayName: postalData[0].display_name,
-        success: true
-      };
+    } catch (e) {
+      console.log('Busca estruturada falhou');
     }
 
     return {
-      lat: parseFloat(data[0].lat),
-      lng: parseFloat(data[0].lon),
-      displayName: data[0].display_name,
-      success: true
+      lat: 0,
+      lng: 0,
+      displayName: '',
+      success: false,
+      error: 'Não foi possível encontrar a morada. Verifique o código postal e a rua.'
     };
   } catch (error) {
     console.error('Erro na geocodificação:', error);
@@ -177,6 +201,10 @@ export async function calculateDelivery(postalCode: string, street: string): Pro
     geocoding.lat,
     geocoding.lng
   );
+
+  console.log(`Distância calculada: ${distance.toFixed(2)}km`);
+  console.log(`Loja: ${STORE_LOCATION.lat}, ${STORE_LOCATION.lng}`);
+  console.log(`Cliente: ${geocoding.lat}, ${geocoding.lng}`);
 
   const calculation = calculateDeliveryFee(distance);
 
