@@ -20,6 +20,7 @@ export interface User {
 }
 
 export type OrderStatus = 'Pendente' | 'Em Produção' | 'Entregue';
+export type DeliveryType = 'delivery' | 'pickup';
 
 export interface Order {
   id: string;
@@ -28,6 +29,10 @@ export interface Order {
   total: number;
   status: OrderStatus;
   paymentMethod: string;
+  deliveryType: DeliveryType;
+  deliveryDate: string;
+  deliveryTime: string;
+  deliveryAddress?: string;
 }
 
 export interface BlogPost {

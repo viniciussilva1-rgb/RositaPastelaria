@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Product, User, Order, SiteConfig, Testimonial } from './types';
+import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS } from './constants';
+
+interface DeliveryInfo {
+  type: DeliveryType;
+  date: string;
+  time: string;
+  address?: string;
+}
 
 interface ShopContextType {
   products: Product[];
@@ -29,7 +36,8 @@ interface ShopContextType {
   logout: () => void;
   
   orders: Order[];
-  placeOrder: (paymentMethod: string) => void;
+  placeOrder: (paymentMethod: string, deliveryInfo: DeliveryInfo) => void;
+  getUnavailableDeliverySlots: (date: string) => string[];
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
@@ -189,7 +197,18 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
-  const placeOrder = (paymentMethod: string) => {
+  // Get unavailable delivery slots for a specific date
+  // Returns time slots that are already booked for HOME DELIVERY
+  const getUnavailableDeliverySlots = (date: string): string[] => {
+    return orders
+      .filter(order => 
+        order.deliveryDate === date && 
+        order.deliveryType === 'delivery' // Only block if it's a delivery
+      )
+      .map(order => order.deliveryTime);
+  };
+
+  const placeOrder = (paymentMethod: string, deliveryInfo: DeliveryInfo) => {
     if (cart.length === 0) return;
     
     const newOrder: Order = {
@@ -198,7 +217,11 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       items: [...cart],
       total: cartTotal,
       status: 'Pendente',
-      paymentMethod
+      paymentMethod,
+      deliveryType: deliveryInfo.type,
+      deliveryDate: deliveryInfo.date,
+      deliveryTime: deliveryInfo.time,
+      deliveryAddress: deliveryInfo.address
     };
 
     setOrders(prev => [newOrder, ...prev]);
@@ -213,7 +236,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
-      orders, placeOrder
+      orders, placeOrder, getUnavailableDeliverySlots
     }}>
       {children}
     </ShopContext.Provider>
