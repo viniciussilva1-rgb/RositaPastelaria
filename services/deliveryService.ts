@@ -51,11 +51,33 @@ export async function geocodeAddress(postalCode: string, street: string): Promis
   try {
     // Formatar código postal para padrão português (XXXX-XXX)
     const formattedPostalCode = postalCode.replace(/\s/g, '').replace(/(\d{4})-?(\d{3})/, '$1-$2');
+    const postalPrefix = formattedPostalCode.substring(0, 4);
     
-    // Tentar múltiplas queries para melhor precisão
-    const queries = [
+    // Determinar a região baseado no código postal
+    // 2530 = Lourinhã, 2560 = Torres Vedras, etc.
+    let region = '';
+    if (postalPrefix === '2530') {
+      region = 'Lourinhã';
+    } else if (postalPrefix === '2560') {
+      region = 'Torres Vedras';
+    } else if (postalPrefix === '2500') {
+      region = 'Caldas da Rainha';
+    } else if (postalPrefix === '2510') {
+      region = 'Óbidos';
+    } else if (postalPrefix === '2540') {
+      region = 'Bombarral';
+    } else if (postalPrefix === '2550') {
+      region = 'Cadaval';
+    }
+    
+    // Tentar múltiplas queries para melhor precisão - priorizando a região
+    const queries = region ? [
+      `${street}, ${region}, Portugal`,
+      `${street}, ${formattedPostalCode}, ${region}, Portugal`,
+      `${formattedPostalCode}, ${region}, Portugal`,
+      `${region}, Portugal`
+    ] : [
       `${street}, ${formattedPostalCode}, Portugal`,
-      `${street}, Lourinhã, Portugal`,
       `${formattedPostalCode}, Portugal`
     ];
 
@@ -80,7 +102,8 @@ export async function geocodeAddress(postalCode: string, street: string): Promis
         const data = await response.json();
 
         if (data.length > 0) {
-          console.log('Geocoding encontrado:', data[0].display_name);
+          console.log('Geocoding encontrado com query:', queryStr);
+          console.log('Resultado:', data[0].display_name);
           return {
             lat: parseFloat(data[0].lat),
             lng: parseFloat(data[0].lon),
@@ -96,7 +119,18 @@ export async function geocodeAddress(postalCode: string, street: string): Promis
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Se nenhuma query funcionou, tentar busca estruturada por código postal
+    // Se nenhuma query funcionou e temos uma região conhecida, usar coordenadas aproximadas
+    if (region === 'Lourinhã') {
+      console.log('Usando coordenadas aproximadas de Lourinhã');
+      return {
+        lat: 39.2416,
+        lng: -9.3131,
+        displayName: `${street}, Lourinhã, Portugal (aproximado)`,
+        success: true
+      };
+    }
+
+    // Fallback: busca estruturada por código postal
     try {
       const structuredResponse = await fetch(
         `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(formattedPostalCode)}&country=Portugal&format=json&limit=1`,
