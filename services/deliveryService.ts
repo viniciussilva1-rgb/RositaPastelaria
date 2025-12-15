@@ -1,10 +1,10 @@
 // Serviço de cálculo de distância e taxa de entrega
 
-// Localização da Rosita Pastelaria (atualizar com a localização real)
+// Localização da Rosita Pastelaria
 const STORE_LOCATION = {
-  lat: 38.7223, // Latitude da loja
-  lng: -9.1393, // Longitude da loja
-  address: 'Lisboa, Portugal' // Endereço da loja
+  lat: 39.1929713,
+  lng: -9.3121405,
+  address: 'Rua de São Sebastião N111, Portugal'
 };
 
 // Configuração de taxas de entrega
