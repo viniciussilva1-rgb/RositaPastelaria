@@ -7,6 +7,8 @@ interface DeliveryInfo {
   date: string;
   time: string;
   address?: string;
+  deliveryFee?: number;
+  distance?: number;
 }
 
 interface ShopContextType {
@@ -211,11 +213,17 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const placeOrder = (paymentMethod: string, deliveryInfo: DeliveryInfo) => {
     if (cart.length === 0) return;
     
+    const deliveryFee = deliveryInfo.deliveryFee || 0;
+    const totalWithDelivery = cartTotal + deliveryFee;
+    
     const newOrder: Order = {
       id: `CMD-${Date.now().toString().slice(-6)}`,
       date: new Date().toLocaleDateString('pt-PT'),
       items: [...cart],
-      total: cartTotal,
+      total: totalWithDelivery,
+      subtotal: cartTotal,
+      deliveryFee: deliveryFee,
+      deliveryDistance: deliveryInfo.distance,
       status: 'Pendente',
       paymentMethod,
       deliveryType: deliveryInfo.type,

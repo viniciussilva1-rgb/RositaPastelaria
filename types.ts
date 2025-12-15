@@ -27,6 +27,9 @@ export interface Order {
   date: string;
   items: CartItem[];
   total: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  deliveryDistance?: number;
   status: OrderStatus;
   paymentMethod: string;
   deliveryType: DeliveryType;

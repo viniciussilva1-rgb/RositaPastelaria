@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useShop } from '../context';
 import { 
   Trash2, Plus, Minus, ArrowLeft, CheckCircle, 
   Calendar, Clock, MapPin, Home, Store, ChevronLeft, ChevronRight,
-  Truck, Package
+  Truck, Loader2, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DeliveryType } from '../types';
+import { calculateDelivery, DeliveryCalculation, getDeliveryConfig } from '../services/deliveryService';
 
 // Horários disponíveis
 const TIME_SLOTS = [
@@ -25,8 +26,29 @@ const Cart: React.FC = () => {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Address states
+  const [postalCode, setPostalCode] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [addressFloor, setAddressFloor] = useState('');
+  
+  // Delivery calculation states
+  const [deliveryCalc, setDeliveryCalc] = useState<DeliveryCalculation | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [addressVerified, setAddressVerified] = useState(false);
+
+  const deliveryConfig = getDeliveryConfig();
+
+  // Full delivery address
+  const fullDeliveryAddress = useMemo(() => {
+    const parts = [streetAddress];
+    if (addressNumber) parts.push(`nº ${addressNumber}`);
+    if (addressFloor) parts.push(addressFloor);
+    parts.push(postalCode);
+    return parts.filter(Boolean).join(', ');
+  }, [streetAddress, addressNumber, addressFloor, postalCode]);
 
   // Get unavailable slots for selected date (only for delivery)
   const unavailableSlots = useMemo(() => {
@@ -45,12 +67,10 @@ const Cart: React.FC = () => {
     
     const days: (number | null)[] = [];
     
-    // Empty cells for days before the first day of month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
     
-    // Days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i);
     }
@@ -64,17 +84,14 @@ const Cart: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Minimum 1 day advance for orders
     const minDate = new Date(today);
     minDate.setDate(minDate.getDate() + 1);
     
-    // Not Sunday (0)
     const isSunday = date.getDay() === 0;
     
     return date >= minDate && !isSunday;
   };
 
-  // Format date for display and storage
   const formatDate = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     return date.toLocaleDateString('pt-PT');
@@ -83,6 +100,57 @@ const Cart: React.FC = () => {
   const formatDateDisplay = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     return date.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+
+  // Calculate delivery fee when address changes
+  const handleCalculateDelivery = useCallback(async () => {
+    if (!postalCode || !streetAddress) {
+      setDeliveryCalc(null);
+      setAddressVerified(false);
+      return;
+    }
+
+    // Validate Portuguese postal code format (XXXX-XXX)
+    const postalCodeRegex = /^\d{4}-?\d{3}$/;
+    if (!postalCodeRegex.test(postalCode.replace(/\s/g, ''))) {
+      setDeliveryCalc({
+        distance: 0,
+        deliveryFee: 0,
+        isDeliveryAvailable: false,
+        message: 'Código postal inválido. Use o formato XXXX-XXX.'
+      });
+      setAddressVerified(false);
+      return;
+    }
+
+    setIsCalculating(true);
+    setAddressVerified(false);
+
+    try {
+      const fullAddress = `${streetAddress}${addressNumber ? ` ${addressNumber}` : ''}`;
+      const result = await calculateDelivery(postalCode, fullAddress);
+      setDeliveryCalc(result);
+      setAddressVerified(result.isDeliveryAvailable);
+    } catch (error) {
+      setDeliveryCalc({
+        distance: 0,
+        deliveryFee: 0,
+        isDeliveryAvailable: false,
+        message: 'Erro ao verificar morada. Tente novamente.'
+      });
+    } finally {
+      setIsCalculating(false);
+    }
+  }, [postalCode, streetAddress, addressNumber]);
+
+  // Reset delivery calculation when changing delivery type
+  const handleDeliveryTypeChange = (type: DeliveryType) => {
+    setDeliveryType(type);
+    setSelectedTime('');
+    if (type === 'pickup') {
+      setDeliveryCalc(null);
+      setAddressVerified(false);
+    }
   };
 
   const handleCheckout = () => {
@@ -98,12 +166,30 @@ const Cart: React.FC = () => {
       alert('Por favor selecione uma data e horário.');
       return;
     }
-    if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
-      alert('Por favor insira a morada de entrega.');
-      return;
+    if (deliveryType === 'delivery') {
+      if (!postalCode || !streetAddress) {
+        alert('Por favor insira o código postal e a morada.');
+        return;
+      }
+      if (!addressVerified) {
+        alert('Por favor verifique a sua morada clicando em "Verificar Morada".');
+        return;
+      }
+      if (!deliveryCalc?.isDeliveryAvailable) {
+        alert('Entrega não disponível para esta morada.');
+        return;
+      }
     }
     setStep('checkout');
   };
+
+  // Calculate total with delivery fee
+  const totalWithDelivery = useMemo(() => {
+    if (deliveryType === 'delivery' && deliveryCalc?.deliveryFee) {
+      return cartTotal + deliveryCalc.deliveryFee;
+    }
+    return cartTotal;
+  }, [cartTotal, deliveryType, deliveryCalc]);
 
   const submitOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,32 +202,30 @@ const Cart: React.FC = () => {
       type: deliveryType,
       date: selectedDate,
       time: selectedTime,
-      address: deliveryType === 'delivery' ? deliveryAddress : undefined
+      address: deliveryType === 'delivery' ? fullDeliveryAddress : undefined,
+      deliveryFee: deliveryCalc?.deliveryFee || 0,
+      distance: deliveryCalc?.distance || 0
     });
     
     setStep('success');
   };
 
-  // Fallback para imagens quebradas
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.src = 'https://placehold.co/150?text=Produto';
   };
 
-  // Previous month
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
     setSelectedDate('');
     setSelectedTime('');
   };
 
-  // Next month
   const nextMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
     setSelectedDate('');
     setSelectedTime('');
   };
 
-  // Can go to previous month?
   const canGoPrev = () => {
     const today = new Date();
     return currentMonth.getMonth() > today.getMonth() || currentMonth.getFullYear() > today.getFullYear();
@@ -177,8 +261,18 @@ const Cart: React.FC = () => {
             <span className="font-semibold">🕐 Horário:</span> {selectedTime}
           </p>
           <p className="text-sm text-gray-600">
-            <span className="font-semibold">{deliveryType === 'delivery' ? '🚚 Entrega:' : '🏪 Levantamento:'}</span> {deliveryType === 'delivery' ? deliveryAddress : 'Na loja'}
+            <span className="font-semibold">{deliveryType === 'delivery' ? '🚚 Entrega:' : '🏪 Levantamento:'}</span> {deliveryType === 'delivery' ? fullDeliveryAddress : 'Na loja'}
           </p>
+          {deliveryType === 'delivery' && deliveryCalc && (
+            <>
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold">📍 Distância:</span> {deliveryCalc.distance}km
+              </p>
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold">💰 Taxa de entrega:</span> {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+              </p>
+            </>
+          )}
         </div>
         <div className="flex gap-4">
            <Link to="/cliente" className="px-6 py-3 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors uppercase text-xs font-bold tracking-widest">
@@ -312,10 +406,7 @@ const Cart: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     type="button"
-                    onClick={() => {
-                      setDeliveryType('pickup');
-                      setSelectedTime(''); // Reset time when changing type
-                    }}
+                    onClick={() => handleDeliveryTypeChange('pickup')}
                     className={`p-6 rounded-xl border-2 transition-all text-left ${
                       deliveryType === 'pickup' 
                         ? 'border-gold-500 bg-gold-50' 
@@ -331,15 +422,12 @@ const Cart: React.FC = () => {
                       <span className="font-bold text-gray-800">Levantar na Loja</span>
                     </div>
                     <p className="text-sm text-gray-500">Levante a sua encomenda na nossa pastelaria.</p>
-                    <p className="text-xs text-gold-600 font-medium mt-2">Grátis</p>
+                    <p className="text-xs text-gold-600 font-medium mt-2">Sempre Grátis</p>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setDeliveryType('delivery');
-                      setSelectedTime(''); // Reset time when changing type
-                    }}
+                    onClick={() => handleDeliveryTypeChange('delivery')}
                     className={`p-6 rounded-xl border-2 transition-all text-left ${
                       deliveryType === 'delivery' 
                         ? 'border-gold-500 bg-gold-50' 
@@ -355,106 +443,240 @@ const Cart: React.FC = () => {
                       <span className="font-bold text-gray-800">Entrega ao Domicílio</span>
                     </div>
                     <p className="text-sm text-gray-500">Receba a encomenda no conforto da sua casa.</p>
-                    <p className="text-xs text-gold-600 font-medium mt-2">Taxa de entrega a combinar</p>
+                    <p className="text-xs text-gold-600 font-medium mt-2">Grátis até {deliveryConfig.freeDeliveryRadius}km</p>
                   </button>
                 </div>
 
-                {/* Delivery Address */}
+                {/* Delivery Address Form */}
                 {deliveryType === 'delivery' && (
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Home size={14} className="inline mr-1" />
-                      Morada de Entrega *
-                    </label>
-                    <textarea
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder="Rua, número, andar, código postal e cidade..."
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none resize-none"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Calendar */}
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Calendar size={18} className="text-gold-600" />
-                  Selecione a Data
-                </h3>
-                
-                {/* Month Navigation */}
-                <div className="flex items-center justify-between mb-4">
-                  <button 
-                    onClick={prevMonth}
-                    disabled={!canGoPrev()}
-                    className={`p-2 rounded-lg ${canGoPrev() ? 'hover:bg-gray-100' : 'opacity-30 cursor-not-allowed'}`}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <h4 className="font-semibold text-gray-800 capitalize">
-                    {currentMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
-                  </h4>
-                  <button 
-                    onClick={nextMonth}
-                    className="p-2 rounded-lg hover:bg-gray-100"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                    <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
-                      {day}
+                  <div className="mt-6 space-y-4">
+                    {/* Info about delivery pricing */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-800 text-sm mb-2">ℹ️ Informação sobre Entregas</h4>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        <li>• Até {deliveryConfig.freeDeliveryRadius}km: <span className="font-semibold">Entrega Grátis</span></li>
+                        <li>• De {deliveryConfig.freeDeliveryRadius}km a {deliveryConfig.maxDeliveryRadius}km: <span className="font-semibold">€{deliveryConfig.extraKmRate.toFixed(2)}/km extra</span></li>
+                        <li>• Máximo: {deliveryConfig.maxDeliveryRadius}km</li>
+                      </ul>
                     </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {calendarDays.map((day, index) => (
-                    <div key={index} className="aspect-square">
-                      {day !== null ? (
-                        <button
-                          type="button"
-                          disabled={!isDateValid(day)}
-                          onClick={() => {
-                            setSelectedDate(formatDate(day));
-                            setSelectedTime('');
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Postal Code */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Código Postal *
+                        </label>
+                        <input
+                          type="text"
+                          value={postalCode}
+                          onChange={(e) => {
+                            setPostalCode(e.target.value);
+                            setAddressVerified(false);
+                            setDeliveryCalc(null);
                           }}
-                          className={`w-full h-full rounded-lg text-sm font-medium transition-all ${
-                            selectedDate === formatDate(day)
-                              ? 'bg-gold-600 text-white'
-                              : isDateValid(day)
-                                ? 'hover:bg-gold-100 text-gray-700'
-                                : 'text-gray-300 cursor-not-allowed'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ) : (
-                        <div></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                          placeholder="XXXX-XXX"
+                          maxLength={8}
+                          className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                        />
+                      </div>
 
-                {selectedDate && (
-                  <div className="mt-4 p-3 bg-gold-50 rounded-lg">
-                    <p className="text-sm text-gold-800 font-medium capitalize">
-                      📅 {formatDateDisplay(parseInt(selectedDate.split('/')[0]))}
-                    </p>
+                      {/* Street */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Rua *
+                        </label>
+                        <input
+                          type="text"
+                          value={streetAddress}
+                          onChange={(e) => {
+                            setStreetAddress(e.target.value);
+                            setAddressVerified(false);
+                            setDeliveryCalc(null);
+                          }}
+                          placeholder="Nome da rua"
+                          className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Number */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Número / Porta
+                        </label>
+                        <input
+                          type="text"
+                          value={addressNumber}
+                          onChange={(e) => setAddressNumber(e.target.value)}
+                          placeholder="Ex: 15, 15A"
+                          className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                        />
+                      </div>
+
+                      {/* Floor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Andar / Apartamento
+                        </label>
+                        <input
+                          type="text"
+                          value={addressFloor}
+                          onChange={(e) => setAddressFloor(e.target.value)}
+                          placeholder="Ex: 3º Esq., R/C"
+                          className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Verify Address Button */}
+                    <button
+                      type="button"
+                      onClick={handleCalculateDelivery}
+                      disabled={!postalCode || !streetAddress || isCalculating}
+                      className={`w-full py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                        postalCode && streetAddress && !isCalculating
+                          ? 'bg-gray-900 text-white hover:bg-gray-800'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isCalculating ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          A verificar morada...
+                        </>
+                      ) : (
+                        <>
+                          <MapPin size={18} />
+                          Verificar Morada e Calcular Taxa
+                        </>
+                      )}
+                    </button>
+
+                    {/* Delivery Calculation Result */}
+                    {deliveryCalc && (
+                      <div className={`p-4 rounded-lg ${
+                        deliveryCalc.isDeliveryAvailable 
+                          ? 'bg-green-50 border border-green-200' 
+                          : 'bg-red-50 border border-red-200'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          {deliveryCalc.isDeliveryAvailable ? (
+                            <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertTriangle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <p className={`font-semibold ${
+                              deliveryCalc.isDeliveryAvailable ? 'text-green-800' : 'text-red-800'
+                            }`}>
+                              {deliveryCalc.isDeliveryAvailable ? 'Entrega Disponível!' : 'Entrega Não Disponível'}
+                            </p>
+                            <p className={`text-sm ${
+                              deliveryCalc.isDeliveryAvailable ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {deliveryCalc.message}
+                            </p>
+                            {deliveryCalc.isDeliveryAvailable && deliveryCalc.distance > 0 && (
+                              <div className="mt-2 pt-2 border-t border-green-200">
+                                <p className="text-sm text-green-800">
+                                  <span className="font-semibold">Distância:</span> {deliveryCalc.distance}km
+                                </p>
+                                <p className="text-sm text-green-800">
+                                  <span className="font-semibold">Taxa de Entrega:</span>{' '}
+                                  {deliveryCalc.deliveryFee > 0 
+                                    ? <span className="text-lg font-bold">€{deliveryCalc.deliveryFee.toFixed(2)}</span>
+                                    : <span className="text-lg font-bold text-green-600">Grátis!</span>
+                                  }
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-
-                <p className="text-xs text-gray-500 mt-3">
-                  ⚠️ Encomendas com pelo menos 1 dia de antecedência. Encerrado aos domingos.
-                </p>
               </div>
+
+              {/* Calendar - Only show if delivery is verified or pickup */}
+              {(deliveryType === 'pickup' || addressVerified) && (
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Calendar size={18} className="text-gold-600" />
+                    Selecione a Data
+                  </h3>
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <button 
+                      onClick={prevMonth}
+                      disabled={!canGoPrev()}
+                      className={`p-2 rounded-lg ${canGoPrev() ? 'hover:bg-gray-100' : 'opacity-30 cursor-not-allowed'}`}
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <h4 className="font-semibold text-gray-800 capitalize">
+                      {currentMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                    </h4>
+                    <button 
+                      onClick={nextMonth}
+                      className="p-2 rounded-lg hover:bg-gray-100"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                      <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((day, index) => (
+                      <div key={index} className="aspect-square">
+                        {day !== null ? (
+                          <button
+                            type="button"
+                            disabled={!isDateValid(day)}
+                            onClick={() => {
+                              setSelectedDate(formatDate(day));
+                              setSelectedTime('');
+                            }}
+                            className={`w-full h-full rounded-lg text-sm font-medium transition-all ${
+                              selectedDate === formatDate(day)
+                                ? 'bg-gold-600 text-white'
+                                : isDateValid(day)
+                                  ? 'hover:bg-gold-100 text-gray-700'
+                                  : 'text-gray-300 cursor-not-allowed'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        ) : (
+                          <div></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedDate && (
+                    <div className="mt-4 p-3 bg-gold-50 rounded-lg">
+                      <p className="text-sm text-gold-800 font-medium capitalize">
+                        📅 {formatDateDisplay(parseInt(selectedDate.split('/')[0]))}
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-500 mt-3">
+                    ⚠️ Encomendas com pelo menos 1 dia de antecedência. Encerrado aos domingos.
+                  </p>
+                </div>
+              )}
 
               {/* Time Slots */}
-              {selectedDate && (
+              {selectedDate && (deliveryType === 'pickup' || addressVerified) && (
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <Clock size={18} className="text-gold-600" />
@@ -515,6 +737,16 @@ const Cart: React.FC = () => {
                     </div>
                   </div>
 
+                  {deliveryType === 'delivery' && addressVerified && deliveryCalc && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <MapPin size={18} className="text-gold-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">Distância</p>
+                        <p className="font-medium text-gray-800">{deliveryCalc.distance}km</p>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedDate && (
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <Calendar size={18} className="text-gold-600" />
@@ -535,29 +767,41 @@ const Cart: React.FC = () => {
                     </div>
                   )}
 
-                  {deliveryType === 'delivery' && deliveryAddress && (
+                  {deliveryType === 'delivery' && fullDeliveryAddress && addressVerified && (
                     <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <MapPin size={18} className="text-gold-600 mt-0.5" />
+                      <Home size={18} className="text-gold-600 mt-0.5" />
                       <div>
                         <p className="text-xs text-gray-500">Morada</p>
-                        <p className="font-medium text-gray-800 text-sm">{deliveryAddress}</p>
+                        <p className="font-medium text-gray-800 text-sm">{fullDeliveryAddress}</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="border-t border-gray-100 pt-4 mb-6">
-                  <div className="flex justify-between font-bold text-xl text-gray-800">
-                    <span>Total</span>
+                <div className="border-t border-gray-100 pt-4 mb-6 space-y-2">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
                     <span>€{cartTotal.toFixed(2)}</span>
+                  </div>
+                  {deliveryType === 'delivery' && deliveryCalc && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>Taxa de Entrega</span>
+                      <span className={deliveryCalc.deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
+                        {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-xl text-gray-800 pt-2 border-t border-gray-100">
+                    <span>Total</span>
+                    <span>€{totalWithDelivery.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={handleDeliveryNext}
-                  disabled={!selectedDate || !selectedTime || (deliveryType === 'delivery' && !deliveryAddress.trim())}
+                  disabled={!selectedDate || !selectedTime || (deliveryType === 'delivery' && !addressVerified)}
                   className={`w-full py-4 rounded uppercase text-sm font-bold tracking-widest shadow-md transition-colors ${
-                    selectedDate && selectedTime && (deliveryType === 'pickup' || deliveryAddress.trim())
+                    selectedDate && selectedTime && (deliveryType === 'pickup' || addressVerified)
                       ? 'bg-gold-600 text-white hover:bg-gold-500'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
@@ -609,10 +853,20 @@ const Cart: React.FC = () => {
                       <p className="font-medium text-gray-800">{selectedDate} às {selectedTime}</p>
                     </div>
                     {deliveryType === 'delivery' && (
-                      <div className="col-span-2">
-                        <p className="text-gray-500">Morada</p>
-                        <p className="font-medium text-gray-800">{deliveryAddress}</p>
-                      </div>
+                      <>
+                        <div className="col-span-2">
+                          <p className="text-gray-500">Morada</p>
+                          <p className="font-medium text-gray-800">{fullDeliveryAddress}</p>
+                        </div>
+                        {deliveryCalc && (
+                          <div className="col-span-2">
+                            <p className="text-gray-500">Distância / Taxa</p>
+                            <p className="font-medium text-gray-800">
+                              {deliveryCalc.distance}km - {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Entrega Grátis'}
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -645,10 +899,22 @@ const Cart: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-100 pt-4">
-                    <div className="flex justify-between font-bold text-xl text-gray-800 mb-4">
-                      <span>Total</span>
+                  <div className="border-t border-gray-100 pt-4 space-y-2">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
                       <span>€{cartTotal.toFixed(2)}</span>
+                    </div>
+                    {deliveryType === 'delivery' && deliveryCalc && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Taxa de Entrega ({deliveryCalc.distance}km)</span>
+                        <span className={deliveryCalc.deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
+                          {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-xl text-gray-800 pt-2 border-t border-gray-100">
+                      <span>Total</span>
+                      <span>€{totalWithDelivery.toFixed(2)}</span>
                     </div>
                   </div>
 
