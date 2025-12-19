@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useShop } from '../context';
 import { 
   Package, LogOut, Plus, Edit2, Trash2, X, Save, 
@@ -8,10 +8,169 @@ import {
   AlertCircle, CheckCircle, Clock, Users, Cake,
   Star, MessageSquare, ThumbsUp, ThumbsDown,
   Truck, Store, MapPin, Calendar, Filter, ChevronRight,
-  Play, Printer, FileText
+  Play, Printer, FileText, ImagePlus, Link
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Product, SiteConfig, Order, Testimonial, OrderStatus } from '../types';
+
+// Componente de Upload de Imagem
+interface ImageUploadProps {
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+  required?: boolean;
+}
+
+const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = "Imagem", required = false }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadMode, setUploadMode] = useState<'upload' | 'url'>(value && !value.startsWith('data:') ? 'url' : 'upload');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Verificar tamanho (máx 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 2MB. Por favor, escolha uma imagem menor.');
+        return;
+      }
+
+      setIsLoading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onChange(reader.result as string);
+        setIsLoading(false);
+      };
+      reader.onerror = () => {
+        alert('Erro ao carregar a imagem. Tente novamente.');
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium text-gray-700">{label} {required && '*'}</label>
+        <div className="flex bg-gray-100 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setUploadMode('upload')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-all ${
+              uploadMode === 'upload' 
+                ? 'bg-white text-gold-700 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <ImagePlus size={14} />
+            Upload
+          </button>
+          <button
+            type="button"
+            onClick={() => setUploadMode('url')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md flex items-center gap-1.5 transition-all ${
+              uploadMode === 'url' 
+                ? 'bg-white text-gold-700 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Link size={14} />
+            URL
+          </button>
+        </div>
+      </div>
+
+      {uploadMode === 'upload' ? (
+        <div className="space-y-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+              isLoading 
+                ? 'border-gold-400 bg-gold-50' 
+                : 'border-gray-200 hover:border-gold-400 hover:bg-gold-50'
+            }`}
+          >
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-2">
+                <RefreshCw size={32} className="text-gold-500 animate-spin" />
+                <span className="text-sm text-gray-600">A carregar imagem...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload size={32} className="text-gray-400" />
+                <span className="text-sm text-gray-600">Clique para selecionar uma imagem</span>
+                <span className="text-xs text-gray-400">JPG, PNG ou GIF (máx. 2MB)</span>
+              </div>
+            )}
+          </div>
+          
+          {value && (
+            <div className="relative">
+              <div className="h-32 rounded-xl overflow-hidden bg-gray-100">
+                <img 
+                  src={value} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x300/f3f4f6/9ca3af?text=Erro';
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange('')}
+                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+              >
+                <X size={14} />
+              </button>
+              <span className="absolute bottom-2 left-2 text-xs bg-black/60 text-white px-2 py-1 rounded-lg">
+                ✓ Imagem carregada
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="relative">
+            <Image size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="url" 
+              required={required && !value}
+              placeholder="https://exemplo.com/imagem.jpg"
+              value={value.startsWith('data:') ? '' : value}
+              onChange={e => onChange(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-3 pl-9 font-mono text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            💡 Dica: Use sites como Unsplash ou Imgur para hospedar imagens gratuitamente.
+          </p>
+          {value && !value.startsWith('data:') && (
+            <div className="relative h-32 rounded-xl overflow-hidden bg-gray-100">
+              <img 
+                src={value} 
+                alt="Preview" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/400x300/f3f4f6/9ca3af?text=URL+Inválida';
+                }}
+              />
+              <span className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-2 py-1 rounded">Preview</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Categorias disponíveis
 const CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Especiais'];
@@ -1283,20 +1442,11 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                         onChange={e => setSiteForm({...siteForm, promoBanner: {...siteForm.promoBanner, text: e.target.value}})}
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo (URL)</label>
-                      <input 
-                        className="w-full border border-gray-200 rounded-lg p-3 font-mono text-sm focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none" 
-                        value={siteForm.promoBanner.image}
-                        onChange={e => setSiteForm({...siteForm, promoBanner: {...siteForm.promoBanner, image: e.target.value}})}
-                      />
-                      {siteForm.promoBanner.image && (
-                        <div className="mt-3 relative h-32 rounded-lg overflow-hidden bg-gray-100">
-                          <img src={siteForm.promoBanner.image} alt="Preview" className="w-full h-full object-cover" onError={handleThumbnailError} />
-                          <span className="absolute bottom-2 left-2 text-xs bg-black/50 text-white px-2 py-1 rounded">Preview</span>
-                        </div>
-                      )}
-                    </div>
+                    <ImageUpload
+                      label="Imagem de Fundo"
+                      value={siteForm.promoBanner.image}
+                      onChange={(value) => setSiteForm({...siteForm, promoBanner: {...siteForm.promoBanner, image: value}})}
+                    />
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Texto do Botão</label>
                       <input 
@@ -1465,24 +1615,6 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem *</label>
-                <div className="relative">
-                  <Image size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="url" 
-                    required
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    value={productForm.image}
-                    onChange={e => setProductForm({...productForm, image: e.target.value})}
-                    className="w-full border border-gray-200 rounded-lg p-3 pl-9 font-mono text-sm focus:ring-2 focus:ring-gold-400 outline-none"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Dica: Use sites como Unsplash ou Imgur para hospedar imagens gratuitamente.
-                </p>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Descrição *</label>
                 <textarea 
                   required
@@ -1493,6 +1625,13 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                   placeholder="Descreva o produto de forma apelativa..."
                 />
               </div>
+
+              <ImageUpload
+                label="Imagem do Produto"
+                value={productForm.image}
+                onChange={(value) => setProductForm({...productForm, image: value})}
+                required
+              />
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button 
