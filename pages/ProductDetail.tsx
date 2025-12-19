@@ -141,8 +141,15 @@ const ProductDetail: React.FC = () => {
   const [addedToCart, setAddedToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
   
+  // Pack Salgados - seleção de unidades
+  const packOptions = [12, 25, 50, 100];
+  const [selectedPack, setSelectedPack] = useState<number>(12);
+  
   // Encontrar o produto
   const product = products.find(p => p.id === id);
+  
+  // Verificar se é Pack Salgados
+  const isPackSalgados = product?.category === 'Pack Salgados';
   
   // Obter recomendações
   const recommendations = product ? getRecommendations(product, products) : [];
@@ -159,8 +166,19 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product);
+      // Para Pack Salgados, criar um produto modificado com as unidades no nome
+      if (isPackSalgados) {
+        const totalUnits = selectedPack * quantity;
+        const packProduct = {
+          ...product,
+          name: `${product.name} (${totalUnits} unidades)`,
+          price: product.price * quantity // Preço total baseado na quantidade de packs
+        };
+        addToCart(packProduct);
+      } else {
+        for (let i = 0; i < quantity; i++) {
+          addToCart(product);
+        }
       }
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
@@ -307,8 +325,83 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
             
-            {/* Quantity & Add to Cart */}
-            {product.category !== 'Especiais' && (
+            {/* Pack Salgados - Seleção de Unidades */}
+            {isPackSalgados && (
+              <div className="mb-6">
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+                  <p className="text-orange-800 text-sm">
+                    <strong>📦 Pack de Salgados:</strong> Escolha a quantidade de unidades por pack. Pode adicionar mais packs clicando no botão +.
+                  </p>
+                </div>
+                
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Unidades por Pack</h3>
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {packOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSelectedPack(option);
+                        setQuantity(1);
+                      }}
+                      className={`px-5 py-3 rounded-xl font-bold text-lg transition-all ${
+                        selectedPack === option
+                          ? 'bg-orange-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {option} Un.
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Quantidade de Packs */}
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Quantidade de Packs</h3>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center border border-gray-200 rounded-lg">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="px-4 py-3 font-medium text-gray-900 min-w-[60px] text-center">
+                      {quantity}
+                    </span>
+                    <button 
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Resumo do Pack */}
+                <div className="bg-gray-100 rounded-xl p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Pack selecionado:</span>
+                    <span className="font-bold text-gray-900">{selectedPack} unidades</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Quantidade de packs:</span>
+                    <span className="font-bold text-gray-900">{quantity}x</span>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-gray-800 font-medium">Total de unidades:</span>
+                      <span className="font-bold text-orange-600 text-xl">{selectedPack * quantity} unidades</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 font-medium">Preço total:</span>
+                      <span className="font-bold text-green-600 text-xl">€{(product.price * quantity).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Quantity & Add to Cart - Para outras categorias */}
+            {product.category !== 'Especiais' && !isPackSalgados && (
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-200 rounded-lg">
                   <button 

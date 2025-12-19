@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, MessageCircle, Mail, Phone, X, Eye } from 'lucide-react';
+import { ShoppingCart, MessageCircle, Mail, Phone, X, Eye, Package } from 'lucide-react';
 
 // Modal de Pedido de Orçamento
 interface QuoteModalProps {
@@ -98,6 +98,7 @@ const Menu: React.FC = () => {
   const { addToCart, products } = useShop();
   const [filter, setFilter] = useState<string>('Todos');
   const [quoteModal, setQuoteModal] = useState<{ isOpen: boolean; product: any }>({ isOpen: false, product: null });
+  const navigate = useNavigate();
   
   const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
   
@@ -113,6 +114,9 @@ const Menu: React.FC = () => {
   const handleProductAction = (product: any) => {
     if (product.category === 'Especiais') {
       setQuoteModal({ isOpen: true, product });
+    } else if (product.category === 'Pack Salgados') {
+      // Redirecionar para página de detalhes para escolher as unidades
+      navigate(`/produto/${product.id}`);
     } else {
       addToCart(product);
     }
@@ -184,11 +188,15 @@ const Menu: React.FC = () => {
                       className={`w-full py-3 uppercase text-[10px] font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
                         product.category === 'Especiais' 
                           ? 'bg-gold-500 text-white hover:bg-gold-600' 
+                          : product.category === 'Pack Salgados'
+                          ? 'bg-orange-500 text-white hover:bg-orange-600'
                           : 'bg-gray-900 text-white hover:bg-gold-600'
                       }`}
                     >
                       {product.category === 'Especiais' ? (
                         <><MessageCircle size={14} /> Pedir Orçamento</>
+                      ) : product.category === 'Pack Salgados' ? (
+                        <><Package size={14} /> Escolher Unidades</>
                       ) : (
                         <><ShoppingCart size={14} /> Adicionar ao Carrinho</>
                       )}
