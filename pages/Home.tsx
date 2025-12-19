@@ -173,7 +173,9 @@ const Home: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <h3 className="text-xl font-serif text-gray-900 mb-2 group-hover:text-gold-600 transition-colors">{product.name}</h3>
-                  <span className="text-gold-600 font-medium font-serif italic text-lg">€{product.price.toFixed(2)}</span>
+                  <span className="text-gold-600 font-medium font-serif italic text-lg">
+                    €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm text-gray-500">/Kg</span>}
+                  </span>
                 </div>
               </div>
             ))}

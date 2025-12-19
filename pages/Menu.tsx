@@ -58,7 +58,9 @@ const Menu: React.FC = () => {
                 
                 {/* Always Visible Price Tag - Elegant */}
                 <div className="absolute top-0 right-0 bg-white px-4 py-2 shadow-sm">
-                   <span className="font-serif italic font-medium text-gray-900">€{product.price.toFixed(2)}</span>
+                   <span className="font-serif italic font-medium text-gray-900">
+                     €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gray-500">/Kg</span>}
+                   </span>
                 </div>
 
                 {/* Add to Cart Overlay */}

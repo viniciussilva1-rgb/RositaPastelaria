@@ -786,7 +786,9 @@ const Admin: React.FC = () => {
                               </span>
                             </td>
                             <td className="p-4">
-                              <span className="font-bold text-gray-900">€{product.price.toFixed(2)}</span>
+                              <span className="font-bold text-gray-900">
+                                €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gray-500 font-normal">/Kg</span>}
+                              </span>
                             </td>
                             <td className="p-4">
                               <div className="flex justify-end gap-2">
@@ -850,7 +852,9 @@ const Admin: React.FC = () => {
                       <div className="p-4">
                         <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
                         <p className="text-sm text-gray-500 line-clamp-2 mb-3">{product.description}</p>
-                        <p className="text-lg font-bold text-gold-600">€{product.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-gold-600">
+                          €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm text-gray-500 font-normal">/Kg</span>}
+                        </p>
                       </div>
                     </div>
                   ))}

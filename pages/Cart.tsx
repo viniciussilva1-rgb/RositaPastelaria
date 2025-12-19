@@ -340,7 +340,7 @@ const Cart: React.FC = () => {
                     />
                     <div className="ml-6 flex-grow">
                       <h3 className="text-lg font-serif text-gray-800">{item.name}</h3>
-                      <p className="text-gray-500 text-sm">€{item.price.toFixed(2)} / un</p>
+                      <p className="text-gray-500 text-sm">€{item.price.toFixed(2)} {item.category === 'Bolos de Aniversário' ? '/ Kg' : '/ un'}</p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <button onClick={() => updateQuantity(item.id, -1)} className="p-1 text-gray-400 hover:text-gold-600">
