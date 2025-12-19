@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType } from './types';
-import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS } from './constants';
+import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost } from './types';
+import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS, BLOG_POSTS } from './constants';
 
 // Categorias iniciais
 const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais'];
@@ -32,6 +32,11 @@ interface ShopContextType {
   addTestimonial: (testimonial: Testimonial) => void;
   updateTestimonial: (testimonial: Testimonial) => void;
   deleteTestimonial: (id: string) => void;
+
+  blogPosts: BlogPost[];
+  addBlogPost: (post: BlogPost) => void;
+  updateBlogPost: (post: BlogPost) => void;
+  deleteBlogPost: (id: string) => void;
 
   cart: CartItem[];
   addToCart: (product: Product) => void;
@@ -79,6 +84,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return saved ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
   });
 
+  // Blog Posts State
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
+    const saved = localStorage.getItem('rosita_blog_posts');
+    return saved ? JSON.parse(saved) : BLOG_POSTS;
+  });
+
   // Cart State
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('rosita_cart');
@@ -121,6 +132,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     localStorage.setItem('rosita_testimonials', JSON.stringify(testimonials));
   }, [testimonials]);
+
+  useEffect(() => {
+    localStorage.setItem('rosita_blog_posts', JSON.stringify(blogPosts));
+  }, [blogPosts]);
 
   useEffect(() => {
     localStorage.setItem('rosita_cart', JSON.stringify(cart));
@@ -184,6 +199,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTestimonial = (id: string) => {
     setTestimonials(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Blog Post Actions
+  const addBlogPost = (post: BlogPost) => {
+    setBlogPosts(prev => [post, ...prev]);
+  };
+
+  const updateBlogPost = (updatedPost: BlogPost) => {
+    setBlogPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+  };
+
+  const deleteBlogPost = (id: string) => {
+    setBlogPosts(prev => prev.filter(p => p.id !== id));
   };
 
   // Cart Actions
@@ -303,6 +331,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       categories, addCategory, updateCategory, deleteCategory,
       siteConfig, updateSiteConfig,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
+      blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
       orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots

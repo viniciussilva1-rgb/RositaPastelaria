@@ -8,10 +8,10 @@ import {
   AlertCircle, CheckCircle, Clock, Users, Cake,
   Star, MessageSquare, ThumbsUp, ThumbsDown,
   Truck, Store, MapPin, Calendar, Filter, ChevronRight,
-  Play, Printer, FileText, ImagePlus, Link
+  Play, Printer, FileText, ImagePlus, Link, BookOpen
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Product, SiteConfig, Order, Testimonial, OrderStatus } from '../types';
+import { Product, SiteConfig, Order, Testimonial, OrderStatus, BlogPost } from '../types';
 
 // Componente de Upload de Imagem
 interface ImageUploadProps {
@@ -228,13 +228,14 @@ const Admin: React.FC = () => {
     addProduct, updateProduct, deleteProduct, 
     siteConfig, updateSiteConfig,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
+    blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
     updateOrder, deleteOrder,
     categories, addCategory, updateCategory, deleteCategory
   } = useShop();
   const navigate = useNavigate();
 
   // Tab States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'site'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'blog' | 'site'>('dashboard');
   
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
@@ -264,6 +265,15 @@ const Admin: React.FC = () => {
   const [testimonialForm, setTestimonialForm] = useState<Testimonial>(emptyTestimonial);
   const [testimonialSavedSuccess, setTestimonialSavedSuccess] = useState(false);
   const [showDeleteTestimonialConfirm, setShowDeleteTestimonialConfirm] = useState<string | null>(null);
+
+  // Blog States
+  const [isEditingBlogPost, setIsEditingBlogPost] = useState(false);
+  const emptyBlogPost: BlogPost = { 
+    id: '', title: '', excerpt: '', date: '', image: '', content: '' 
+  };
+  const [blogPostForm, setBlogPostForm] = useState<BlogPost>(emptyBlogPost);
+  const [blogPostSavedSuccess, setBlogPostSavedSuccess] = useState(false);
+  const [showDeleteBlogPostConfirm, setShowDeleteBlogPostConfirm] = useState<string | null>(null);
 
   // Order States
   const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | OrderStatus>('all');
@@ -458,6 +468,55 @@ const Admin: React.FC = () => {
     updateTestimonial({ ...testimonial, isApproved: !testimonial.isApproved });
   };
 
+  // Blog Post Handlers
+  const handleEditBlogPostClick = (post: BlogPost) => {
+    setBlogPostForm({ ...post });
+    setBlogPostSavedSuccess(false);
+    setIsEditingBlogPost(true);
+  };
+
+  const handleNewBlogPostClick = () => {
+    setBlogPostForm({ 
+      ...emptyBlogPost, 
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+    });
+    setBlogPostSavedSuccess(false);
+    setIsEditingBlogPost(true);
+  };
+
+  const handleDeleteBlogPostClick = (id: string) => {
+    setShowDeleteBlogPostConfirm(id);
+  };
+
+  const confirmDeleteBlogPost = () => {
+    if (showDeleteBlogPostConfirm) {
+      deleteBlogPost(showDeleteBlogPostConfirm);
+      setShowDeleteBlogPostConfirm(null);
+    }
+  };
+
+  const handleBlogPostSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!blogPostForm.title || !blogPostForm.excerpt) {
+      alert("Por favor preencha o título e o resumo da história.");
+      return;
+    }
+
+    if (blogPosts.some(p => p.id === blogPostForm.id)) {
+      updateBlogPost(blogPostForm);
+    } else {
+      addBlogPost(blogPostForm);
+    }
+    
+    setBlogPostSavedSuccess(true);
+    setTimeout(() => {
+      setIsEditingBlogPost(false);
+      setBlogPostSavedSuccess(false);
+    }, 600);
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Pendente': return 'bg-amber-100 text-amber-800 border-amber-200';
@@ -572,6 +631,19 @@ const Admin: React.FC = () => {
           </button>
           
           <button 
+            onClick={() => setActiveTab('blog')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'blog' 
+                ? 'bg-gold-600 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <BookOpen size={20} />
+            <span className="font-medium">Histórias</span>
+            <span className="ml-auto bg-gray-700 text-xs px-2 py-1 rounded">{blogPosts.length}</span>
+          </button>
+          
+          <button 
             onClick={() => setActiveTab('site')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               activeTab === 'site' 
@@ -616,7 +688,7 @@ const Admin: React.FC = () => {
           </button>
         </div>
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-          {(['dashboard', 'products', 'categories', 'orders', 'testimonials', 'site'] as const).map(tab => (
+          {(['dashboard', 'products', 'categories', 'orders', 'testimonials', 'blog', 'site'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -631,6 +703,7 @@ const Admin: React.FC = () => {
               {tab === 'categories' && 'Categorias'}
               {tab === 'orders' && 'Encomendas'}
               {tab === 'testimonials' && 'Avaliações'}
+              {tab === 'blog' && 'Histórias'}
               {tab === 'site' && 'Site'}
             </button>
           ))}
@@ -1621,6 +1694,132 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
             </div>
           )}
 
+          {/* === BLOG/HISTÓRIAS === */}
+          {activeTab === 'blog' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Gestão de Histórias</h1>
+                  <p className="text-gray-500">Criar, editar e publicar histórias no blog</p>
+                </div>
+                <button 
+                  onClick={handleNewBlogPostClick}
+                  className="flex items-center gap-2 bg-gold-600 text-white px-5 py-2.5 rounded-lg hover:bg-gold-700 transition-colors font-medium shadow-lg shadow-gold-200"
+                >
+                  <Plus size={20} /> Nova História
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <BookOpen size={24} className="text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-gray-900">{blogPosts.length}</p>
+                      <p className="text-sm text-gray-500">Total de Histórias</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Eye size={24} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-gray-900">{blogPosts.length}</p>
+                      <p className="text-sm text-gray-500">Publicadas</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blog Posts List */}
+              <div className="space-y-4">
+                {blogPosts.length === 0 ? (
+                  <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+                    <BookOpen size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">Ainda não há histórias publicadas.</p>
+                    <button 
+                      onClick={handleNewBlogPostClick}
+                      className="inline-flex items-center gap-2 bg-gold-600 text-white px-5 py-2.5 rounded-lg hover:bg-gold-700 transition-colors font-medium"
+                    >
+                      <Plus size={18} /> Criar Primeira História
+                    </button>
+                  </div>
+                ) : (
+                  blogPosts.map(post => (
+                    <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="flex flex-col sm:flex-row">
+                        {/* Image */}
+                        <div className="sm:w-48 h-40 sm:h-auto flex-shrink-0">
+                          <img 
+                            src={post.image} 
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                            onError={handleThumbnailError}
+                          />
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar size={14} className="text-gold-600" />
+                                <span className="text-xs text-gold-600 font-medium">{post.date}</span>
+                              </div>
+                              <h3 className="text-lg font-semibold text-gray-900 mb-2">{post.title}</h3>
+                              <p className="text-gray-600 text-sm line-clamp-2">{post.excerpt}</p>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleEditBlogPostClick(post)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              {showDeleteBlogPostConfirm === post.id ? (
+                                <div className="flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg">
+                                  <button
+                                    onClick={confirmDeleteBlogPost}
+                                    className="text-xs text-red-600 font-bold hover:text-red-700"
+                                  >
+                                    Confirmar
+                                  </button>
+                                  <span className="text-gray-300">|</span>
+                                  <button
+                                    onClick={() => setShowDeleteBlogPostConfirm(null)}
+                                    className="text-xs text-gray-500 hover:text-gray-700"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => handleDeleteBlogPostClick(post.id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* === SITE EDITOR === */}
           {activeTab === 'site' && (
             <div className="space-y-6">
@@ -2131,6 +2330,110 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blog Post Edit Modal */}
+      {isEditingBlogPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditingBlogPost(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative z-10">
+            {/* Header */}
+            <div className="sticky top-0 bg-white p-6 border-b border-gray-100 flex items-center justify-between z-10">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {blogPosts.some(p => p.id === blogPostForm.id) ? 'Editar História' : 'Nova História'}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">Preencha os campos abaixo</p>
+              </div>
+              <button 
+                onClick={() => setIsEditingBlogPost(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            {/* Form */}
+            <form onSubmit={handleBlogPostSave} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
+                <input 
+                  type="text" 
+                  required
+                  value={blogPostForm.title}
+                  onChange={e => setBlogPostForm({ ...blogPostForm, title: e.target.value })}
+                  placeholder="Ex: Como escolher o bolo perfeito"
+                  className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Resumo/Excerto *</label>
+                <textarea 
+                  required
+                  rows={2}
+                  value={blogPostForm.excerpt}
+                  onChange={e => setBlogPostForm({ ...blogPostForm, excerpt: e.target.value })}
+                  placeholder="Breve descrição que aparece na listagem..."
+                  className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Conteúdo Completo</label>
+                <textarea 
+                  rows={6}
+                  value={blogPostForm.content}
+                  onChange={e => setBlogPostForm({ ...blogPostForm, content: e.target.value })}
+                  placeholder="Escreva aqui o conteúdo completo da história..."
+                  className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                <input 
+                  type="text" 
+                  value={blogPostForm.date}
+                  onChange={e => setBlogPostForm({ ...blogPostForm, date: e.target.value })}
+                  placeholder="Ex: 15 Dez 2025"
+                  className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none"
+                />
+              </div>
+
+              <ImageUpload
+                label="Imagem de Capa"
+                value={blogPostForm.image}
+                onChange={(value) => setBlogPostForm({ ...blogPostForm, image: value })}
+              />
+              
+              {/* Save Button */}
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingBlogPost(false)}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold transition-all ${
+                    blogPostSavedSuccess 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-gold-600 text-white hover:bg-gold-700'
+                  }`}
+                >
+                  {blogPostSavedSuccess ? (
+                    <><CheckCircle size={20} /> Guardado!</>
+                  ) : (
+                    <><Save size={20} /> Guardar História</>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
