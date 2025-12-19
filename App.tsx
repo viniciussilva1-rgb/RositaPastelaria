@@ -62,31 +62,44 @@ const ScrollToTop = () => {
   return null;
 }
 
-const App: React.FC = () => {
-  // Se estiver em modo de manutenção, mostrar apenas a página de manutenção
-  if (MAINTENANCE_MODE) {
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  
+  // Lista de rotas que podem ser acessadas mesmo em manutenção (admin bypass)
+  const bypassRoutes = ['/admin', '/admin-bypass'];
+  const isAdminRoute = bypassRoutes.some(route => location.pathname.startsWith(route));
+  
+  // Se estiver em modo de manutenção E não for rota de admin, mostrar página de manutenção
+  if (MAINTENANCE_MODE && !isAdminRoute) {
     return <MaintenanceMode />;
   }
 
   return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/produtos" element={<Menu />} />
+          <Route path="/carrinho" element={<Cart />} />
+          <Route path="/cliente" element={<ClientArea />} />
+          <Route path="/login" element={<ClientArea />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin-bypass" element={<Admin />} />
+          <Route path="/blog" element={<Blog />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
     <ShopProvider>
       <Router>
         <ScrollToTop />
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/produtos" element={<Menu />} />
-              <Route path="/carrinho" element={<Cart />} />
-              <Route path="/cliente" element={<ClientArea />} />
-              <Route path="/login" element={<ClientArea />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/blog" element={<Blog />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <AppContent />
       </Router>
     </ShopProvider>
   );
