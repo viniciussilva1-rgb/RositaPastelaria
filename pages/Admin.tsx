@@ -26,26 +26,74 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = "Ima
   const [uploadMode, setUploadMode] = useState<'upload' | 'url'>(value && !value.startsWith('data:') ? 'url' : 'upload');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Função para comprimir imagem
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Redimensionar se necessário
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Não foi possível criar contexto do canvas'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Converter para Base64 com compressão
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Verificar tamanho (máx 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB. Por favor, escolha uma imagem menor.');
+      // Verificar tamanho (máx 5MB antes da compressão)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB. Por favor, escolha uma imagem menor.');
         return;
       }
 
       setIsLoading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onChange(reader.result as string);
+      try {
+        // Comprimir imagem para reduzir tamanho
+        const compressedImage = await compressImage(file, 1200, 0.75);
+        
+        // Verificar se após compressão ainda é muito grande
+        if (compressedImage.length > 1000000) {
+          // Tentar comprimir mais
+          const moreCompressed = await compressImage(file, 800, 0.6);
+          onChange(moreCompressed);
+        } else {
+          onChange(compressedImage);
+        }
         setIsLoading(false);
-      };
-      reader.onerror = () => {
-        alert('Erro ao carregar a imagem. Tente novamente.');
+      } catch (error) {
+        console.error('Erro ao processar imagem:', error);
+        alert('Erro ao processar a imagem. Tente novamente com outra imagem.');
         setIsLoading(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -329,9 +377,26 @@ const Admin: React.FC = () => {
 
   const handleSiteConfigSave = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSiteConfig(siteForm);
-    setSiteSaved(true);
-    setTimeout(() => setSiteSaved(false), 3000);
+    try {
+      // Verificar se a imagem Base64 não é muito grande (máx ~1.5MB para localStorage seguro)
+      const promoBannerImage = siteForm.promoBanner.image;
+      if (promoBannerImage && promoBannerImage.startsWith('data:') && promoBannerImage.length > 1500000) {
+        alert('A imagem do banner é muito grande. Por favor, use uma imagem menor (máx. 1MB) ou forneça uma URL externa.');
+        return;
+      }
+      const heroImage = siteForm.hero.image;
+      if (heroImage && heroImage.startsWith('data:') && heroImage.length > 1500000) {
+        alert('A imagem do hero é muito grande. Por favor, use uma imagem menor (máx. 1MB) ou forneça uma URL externa.');
+        return;
+      }
+      
+      updateSiteConfig(siteForm);
+      setSiteSaved(true);
+      setTimeout(() => setSiteSaved(false), 3000);
+    } catch (error) {
+      console.error('Erro ao guardar configurações:', error);
+      alert('Erro ao guardar as alterações. A imagem pode ser muito grande. Tente usar uma URL externa ou uma imagem menor.');
+    }
   };
 
   // Testimonial Handlers

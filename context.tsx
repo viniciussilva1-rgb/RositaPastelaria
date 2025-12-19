@@ -107,7 +107,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [categories]);
 
   useEffect(() => {
-    localStorage.setItem('rosita_site_config', JSON.stringify(siteConfig));
+    try {
+      localStorage.setItem('rosita_site_config', JSON.stringify(siteConfig));
+    } catch (error) {
+      console.error('Erro ao guardar configuração do site no localStorage:', error);
+      // Se o erro for de quota excedida, alertar o usuário
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        alert('Erro: O armazenamento local está cheio. As imagens podem ser muito grandes. Use URLs externas para imagens.');
+      }
+    }
   }, [siteConfig]);
 
   useEffect(() => {
