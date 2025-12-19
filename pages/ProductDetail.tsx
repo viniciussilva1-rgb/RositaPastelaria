@@ -141,8 +141,14 @@ const ProductDetail: React.FC = () => {
   const [addedToCart, setAddedToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
   
-  // Pack Salgados - seleção de unidades
+  // Pack Salgados - seleção de unidades com preços diferenciados
   const packOptions = [12, 25, 50, 100];
+  const packPrices: Record<number, number> = {
+    12: 6.00,    // €0.50/unidade
+    25: 11.00,   // €0.44/unidade
+    50: 20.00,   // €0.40/unidade
+    100: 35.00   // €0.35/unidade - MAIS VANTAJOSO!
+  };
   const [selectedPack, setSelectedPack] = useState<number>(12);
   
   // Encontrar o produto
@@ -166,13 +172,14 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      // Para Pack Salgados, criar um produto modificado com as unidades no nome
+      // Para Pack Salgados, criar um produto modificado com as unidades no nome e preço correto
       if (isPackSalgados) {
         const totalUnits = selectedPack * quantity;
+        const packPrice = packPrices[selectedPack] * quantity;
         const packProduct = {
           ...product,
           name: `${product.name} (${totalUnits} unidades)`,
-          price: product.price * quantity // Preço total baseado na quantidade de packs
+          price: packPrice
         };
         addToCart(packProduct);
       } else {
@@ -330,29 +337,65 @@ const ProductDetail: React.FC = () => {
               <div className="mb-6">
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
                   <p className="text-orange-800 text-sm">
-                    <strong>📦 Pack de Salgados:</strong> Escolha a quantidade de unidades por pack. Pode adicionar mais packs clicando no botão +.
+                    <strong>📦 Pack de Salgados:</strong> Escolha a quantidade de unidades por pack. Quanto maior o pack, melhor o preço por unidade!
                   </p>
                 </div>
                 
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Unidades por Pack</h3>
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {packOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSelectedPack(option);
-                        setQuantity(1);
-                      }}
-                      className={`px-5 py-3 rounded-xl font-bold text-lg transition-all ${
-                        selectedPack === option
-                          ? 'bg-orange-500 text-white shadow-lg scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {option} Un.
-                    </button>
-                  ))}
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Escolha o seu Pack</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  {packOptions.map((option) => {
+                    const pricePerUnit = (packPrices[option] / option).toFixed(2);
+                    const isBestValue = option === 100;
+                    
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          setSelectedPack(option);
+                          setQuantity(1);
+                        }}
+                        className={`relative p-4 rounded-xl font-bold transition-all border-2 ${
+                          selectedPack === option
+                            ? isBestValue 
+                              ? 'bg-green-500 text-white border-green-500 shadow-lg scale-105'
+                              : 'bg-orange-500 text-white border-orange-500 shadow-lg scale-105'
+                            : isBestValue
+                              ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {isBestValue && (
+                          <span className={`absolute -top-2 -right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            selectedPack === option ? 'bg-yellow-400 text-green-900' : 'bg-green-500 text-white'
+                          }`}>
+                            MELHOR PREÇO
+                          </span>
+                        )}
+                        <div className="text-2xl mb-1">{option}</div>
+                        <div className={`text-xs ${selectedPack === option ? 'opacity-90' : 'opacity-70'}`}>unidades</div>
+                        <div className={`text-lg mt-2 ${selectedPack === option ? '' : isBestValue ? 'text-green-600' : 'text-gold-600'}`}>
+                          €{packPrices[option].toFixed(2)}
+                        </div>
+                        <div className={`text-[10px] mt-1 ${selectedPack === option ? 'opacity-80' : 'opacity-60'}`}>
+                          €{pricePerUnit}/un
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+                
+                {/* Destaque economia pack 100 */}
+                {selectedPack !== 100 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <p className="text-green-700 text-sm flex items-center gap-2">
+                      <span className="text-lg">💡</span>
+                      <span>
+                        <strong>Dica:</strong> No pack de 100 unidades paga apenas €0.35/un em vez de €{(packPrices[selectedPack] / selectedPack).toFixed(2)}/un. 
+                        Poupa €{((packPrices[selectedPack] / selectedPack - 0.35) * 100).toFixed(2)} em cada 100 unidades!
+                      </span>
+                    </p>
+                  </div>
+                )}
                 
                 {/* Quantidade de Packs */}
                 <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Quantidade de Packs</h3>
@@ -377,10 +420,10 @@ const ProductDetail: React.FC = () => {
                 </div>
                 
                 {/* Resumo do Pack */}
-                <div className="bg-gray-100 rounded-xl p-4">
+                <div className={`rounded-xl p-4 ${selectedPack === 100 ? 'bg-green-100' : 'bg-gray-100'}`}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Pack selecionado:</span>
-                    <span className="font-bold text-gray-900">{selectedPack} unidades</span>
+                    <span className="font-bold text-gray-900">{selectedPack} unidades × €{packPrices[selectedPack].toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Quantidade de packs:</span>
@@ -393,7 +436,7 @@ const ProductDetail: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800 font-medium">Preço total:</span>
-                      <span className="font-bold text-green-600 text-xl">€{(product.price * quantity).toFixed(2)}</span>
+                      <span className="font-bold text-green-600 text-xl">€{(packPrices[selectedPack] * quantity).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
