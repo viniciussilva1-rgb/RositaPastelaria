@@ -188,7 +188,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const adminLogin = (email: string, password: string): boolean => {
     // Credenciais do administrador
-    const ADMIN_EMAIL = 'rositapastelaria@gmail.com';
+    const ADMIN_EMAIL = 'rositapastelariaofc@gmail.com';
     const ADMIN_PASSWORD = 'RositapastelariaRQ2025';
     
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {

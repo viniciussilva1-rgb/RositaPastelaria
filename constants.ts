@@ -16,7 +16,7 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
   contact: {
     address: "Rua da Doçura, 123, Lisboa",
     phone: "+351 210 000 000",
-    email: "festas@rosita.pt",
+    email: "rositapastelariaofc@gmail.com",
     scheduleWeek: "08:00 - 19:00",
     scheduleWeekend: "09:00 - 13:00"
   }
