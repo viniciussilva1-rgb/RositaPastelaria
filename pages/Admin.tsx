@@ -172,8 +172,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, label = "Ima
   );
 };
 
-// Categorias disponíveis
-const CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Especiais'];
+// Categorias disponíveis - agora vem do contexto
 
 const Admin: React.FC = () => {
   const { 
@@ -181,22 +180,29 @@ const Admin: React.FC = () => {
     addProduct, updateProduct, deleteProduct, 
     siteConfig, updateSiteConfig,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
-    updateOrder, deleteOrder
+    updateOrder, deleteOrder,
+    categories, addCategory, updateCategory, deleteCategory
   } = useShop();
   const navigate = useNavigate();
 
   // Tab States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'testimonials' | 'site'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'site'>('dashboard');
   
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isEditingProduct, setIsEditingProduct] = useState(false);
-  const emptyProduct: Product = { id: '', name: '', description: '', price: 0, image: '', category: 'Salgados' };
+  const emptyProduct: Product = { id: '', name: '', description: '', price: 0, image: '', category: categories[0] || 'Salgados' };
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  // Category States
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] = useState<string | null>(null);
 
   // Site Editor State
   const [siteForm, setSiteForm] = useState<SiteConfig>(siteConfig);
@@ -460,6 +466,19 @@ const Admin: React.FC = () => {
           </button>
           
           <button 
+            onClick={() => setActiveTab('categories')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'categories' 
+                ? 'bg-gold-600 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <Grid3X3 size={20} />
+            <span className="font-medium">Categorias</span>
+            <span className="ml-auto bg-gray-700 text-xs px-2 py-1 rounded">{categories.length}</span>
+          </button>
+          
+          <button 
             onClick={() => setActiveTab('orders')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               activeTab === 'orders' 
@@ -532,7 +551,7 @@ const Admin: React.FC = () => {
           </button>
         </div>
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-          {(['dashboard', 'products', 'orders', 'testimonials', 'site'] as const).map(tab => (
+          {(['dashboard', 'products', 'categories', 'orders', 'testimonials', 'site'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -544,6 +563,7 @@ const Admin: React.FC = () => {
             >
               {tab === 'dashboard' && 'Dashboard'}
               {tab === 'products' && 'Produtos'}
+              {tab === 'categories' && 'Categorias'}
               {tab === 'orders' && 'Encomendas'}
               {tab === 'testimonials' && 'Avaliações'}
               {tab === 'site' && 'Site'}
@@ -726,7 +746,7 @@ const Admin: React.FC = () => {
                         className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-gold-400 outline-none cursor-pointer"
                       >
                         <option value="all">Todas Categorias</option>
-                        {CATEGORIES.map(cat => (
+                        {categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
@@ -860,6 +880,184 @@ const Admin: React.FC = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* === CATEGORIES === */}
+          {activeTab === 'categories' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Gestão de Categorias</h1>
+                  <p className="text-gray-500">Criar, editar e eliminar categorias de produtos</p>
+                </div>
+              </div>
+
+              {/* Add New Category */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Plus size={20} className="text-gold-600" />
+                  Adicionar Nova Categoria
+                </h2>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nome da categoria..."
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    className="flex-1 border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (newCategoryName.trim()) {
+                        addCategory(newCategoryName.trim());
+                        setNewCategoryName('');
+                      }
+                    }}
+                    disabled={!newCategoryName.trim()}
+                    className="px-6 py-3 bg-gold-600 text-white rounded-lg font-bold hover:bg-gold-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Plus size={18} />
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+
+              {/* Categories List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 bg-gray-50">
+                  <h2 className="font-bold text-gray-800">
+                    Categorias Existentes ({categories.length})
+                  </h2>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {categories.map((category, index) => {
+                    const productCount = products.filter(p => p.category === category).length;
+                    const isSpecial = category === 'Especiais';
+                    const isCakes = category === 'Bolos de Aniversário';
+                    
+                    return (
+                      <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                        {editingCategory === category ? (
+                          <div className="flex-1 flex items-center gap-3">
+                            <input
+                              type="text"
+                              value={editCategoryName}
+                              onChange={e => setEditCategoryName(e.target.value)}
+                              className="flex-1 border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-gold-400 outline-none"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                if (editCategoryName.trim()) {
+                                  updateCategory(category, editCategoryName.trim());
+                                  setEditingCategory(null);
+                                  setEditCategoryName('');
+                                }
+                              }}
+                              className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingCategory(null);
+                                setEditCategoryName('');
+                              }}
+                              className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-gold-100 rounded-lg flex items-center justify-center">
+                                <Grid3X3 size={20} className="text-gold-600" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-gray-900">{category}</h3>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-500">{productCount} produto{productCount !== 1 ? 's' : ''}</span>
+                                  {isSpecial && (
+                                    <span className="text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded-full">Sob Orçamento</span>
+                                  )}
+                                  {isCakes && (
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Preço por Kg</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingCategory(category);
+                                  setEditCategoryName(category);
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              {showDeleteCategoryConfirm === category ? (
+                                <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-lg">
+                                  <span className="text-xs text-red-600">
+                                    {productCount > 0 ? `${productCount} produto(s) serão afetados!` : 'Eliminar?'}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      deleteCategory(category);
+                                      setShowDeleteCategoryConfirm(null);
+                                    }}
+                                    className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowDeleteCategoryConfirm(null)}
+                                    className="p-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setShowDeleteCategoryConfirm(category)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {categories.length === 0 && (
+                  <div className="p-12 text-center">
+                    <Grid3X3 size={48} className="text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhuma categoria criada ainda.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+                  <AlertCircle size={18} />
+                  Informações Importantes
+                </h3>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• A categoria <strong>"Especiais"</strong> mostra "Sob Orçamento" em vez de preço</li>
+                  <li>• A categoria <strong>"Bolos de Aniversário"</strong> mostra o preço por Kg</li>
+                  <li>• Ao editar o nome de uma categoria, os produtos são atualizados automaticamente</li>
+                  <li>• Ao eliminar uma categoria, os produtos dessa categoria perdem a classificação</li>
+                </ul>
+              </div>
             </div>
           )}
 
@@ -1617,7 +1815,7 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                         onChange={e => setProductForm({...productForm, category: e.target.value})}
                         className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none bg-white"
                       >
-                        {CATEGORIES.map(cat => (
+                        {categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>

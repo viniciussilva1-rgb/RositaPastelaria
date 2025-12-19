@@ -64,13 +64,17 @@ const ScrollToTop = () => {
 
 const AppContent: React.FC = () => {
   const location = useLocation();
+  const { user } = useShop();
+  
+  // Se for admin logado, pode ver todas as páginas
+  const isAdmin = user?.isAdmin === true;
   
   // Lista de rotas que podem ser acessadas mesmo em manutenção (admin bypass)
   const bypassRoutes = ['/admin', '/admin-bypass', '/cliente', '/login'];
   const isAdminRoute = bypassRoutes.some(route => location.pathname.startsWith(route));
   
-  // Se estiver em modo de manutenção E não for rota de admin, mostrar página de manutenção
-  if (MAINTENANCE_MODE && !isAdminRoute) {
+  // Se estiver em modo de manutenção E não for rota de admin E não for admin logado, mostrar página de manutenção
+  if (MAINTENANCE_MODE && !isAdminRoute && !isAdmin) {
     return <MaintenanceMode />;
   }
 

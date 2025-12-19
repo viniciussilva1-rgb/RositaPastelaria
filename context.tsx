@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS } from './constants';
 
+// Categorias iniciais
+const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais'];
+
 interface DeliveryInfo {
   type: DeliveryType;
   date: string;
@@ -16,6 +19,11 @@ interface ShopContextType {
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
+  
+  categories: string[];
+  addCategory: (category: string) => void;
+  updateCategory: (oldName: string, newName: string) => void;
+  deleteCategory: (category: string) => void;
   
   siteConfig: SiteConfig;
   updateSiteConfig: (config: SiteConfig) => void;
@@ -51,6 +59,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('rosita_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+
+  // Categories State
+  const [categories, setCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('rosita_categories');
+    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
   });
 
   // Site Config State
@@ -89,6 +103,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [products]);
 
   useEffect(() => {
+    localStorage.setItem('rosita_categories', JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
     localStorage.setItem('rosita_site_config', JSON.stringify(siteConfig));
   }, [siteConfig]);
 
@@ -111,6 +129,23 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     localStorage.setItem('rosita_orders', JSON.stringify(orders));
   }, [orders]);
+
+  // Category Actions
+  const addCategory = (category: string) => {
+    if (!categories.includes(category)) {
+      setCategories(prev => [...prev, category]);
+    }
+  };
+
+  const updateCategory = (oldName: string, newName: string) => {
+    setCategories(prev => prev.map(c => c === oldName ? newName : c));
+    // Atualizar produtos com a categoria antiga
+    setProducts(prev => prev.map(p => p.category === oldName ? { ...p, category: newName } : p));
+  };
+
+  const deleteCategory = (category: string) => {
+    setCategories(prev => prev.filter(c => c !== category));
+  };
 
   // Product Actions
   const addProduct = (product: Product) => {
@@ -257,6 +292,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <ShopContext.Provider value={{
       products, addProduct, updateProduct, deleteProduct,
+      categories, addCategory, updateCategory, deleteCategory,
       siteConfig, updateSiteConfig,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
