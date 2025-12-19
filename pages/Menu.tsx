@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, MessageCircle, Mail, Phone, X } from 'lucide-react';
+import { ShoppingCart, MessageCircle, Mail, Phone, X, Eye } from 'lucide-react';
 
 // Modal de Pedido de Orçamento
 interface QuoteModalProps {
@@ -149,12 +150,14 @@ const Menu: React.FC = () => {
           {filteredProducts.map(product => (
             <div key={product.id} className="group">
               <div className="relative h-[450px] overflow-hidden mb-6 bg-cream-50">
-                <img 
-                  src={product.image} 
-                  alt={product.name} 
-                  onError={handleImageError}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
+                <Link to={`/produto/${product.id}`}>
+                  <img 
+                    src={product.image} 
+                    alt={product.name} 
+                    onError={handleImageError}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-pointer"
+                  />
+                </Link>
                 
                 {/* Always Visible Price Tag - Elegant */}
                 <div className="absolute top-0 right-0 bg-gold-600 px-5 py-3 shadow-lg">
@@ -167,22 +170,30 @@ const Menu: React.FC = () => {
                    </span>
                 </div>
 
-                {/* Add to Cart / Quote Overlay */}
-                <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center items-end">
-                   <button 
-                    onClick={() => handleProductAction(product)}
-                    className={`w-full py-3 uppercase text-[10px] font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
-                      product.category === 'Especiais' 
-                        ? 'bg-gold-500 text-white hover:bg-gold-600' 
-                        : 'bg-white text-gray-900 hover:bg-gold-500 hover:text-white'
-                    }`}
-                  >
-                    {product.category === 'Especiais' ? (
-                      <><MessageCircle size={14} /> Pedir Orçamento</>
-                    ) : (
-                      <><ShoppingCart size={14} /> Adicionar ao Carrinho</>
-                    )}
-                  </button>
+                {/* Hover Overlay with Actions */}
+                <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex flex-col gap-2">
+                    <Link 
+                      to={`/produto/${product.id}`}
+                      className="w-full py-3 bg-white text-gray-900 uppercase text-[10px] font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+                    >
+                      <Eye size={14} /> Ver Detalhes
+                    </Link>
+                    <button 
+                      onClick={() => handleProductAction(product)}
+                      className={`w-full py-3 uppercase text-[10px] font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
+                        product.category === 'Especiais' 
+                          ? 'bg-gold-500 text-white hover:bg-gold-600' 
+                          : 'bg-gray-900 text-white hover:bg-gold-600'
+                      }`}
+                    >
+                      {product.category === 'Especiais' ? (
+                        <><MessageCircle size={14} /> Pedir Orçamento</>
+                      ) : (
+                        <><ShoppingCart size={14} /> Adicionar ao Carrinho</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
               
@@ -190,12 +201,20 @@ const Menu: React.FC = () => {
                 <span className="block text-[10px] text-gold-600 font-bold uppercase tracking-widest mb-2">
                   {product.category}
                 </span>
-                <h3 className="text-2xl font-serif text-gray-900 mb-3 group-hover:text-gold-600 transition-colors">
-                  {product.name}
-                </h3>
-                <p className="text-gray-500 text-sm font-light leading-relaxed line-clamp-2">
+                <Link to={`/produto/${product.id}`}>
+                  <h3 className="text-2xl font-serif text-gray-900 mb-3 group-hover:text-gold-600 transition-colors cursor-pointer">
+                    {product.name}
+                  </h3>
+                </Link>
+                <p className="text-gray-500 text-sm font-light leading-relaxed line-clamp-2 mb-3">
                   {product.description}
                 </p>
+                <Link 
+                  to={`/produto/${product.id}`}
+                  className="inline-flex items-center gap-1 text-gold-600 text-xs font-bold uppercase tracking-wider hover:text-gold-700 transition-colors"
+                >
+                  Ler mais →
+                </Link>
               </div>
             </div>
           ))}

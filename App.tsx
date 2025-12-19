@@ -4,6 +4,7 @@ import { ShopProvider, useShop } from './context';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Menu from './pages/Menu';
+import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import ClientArea from './pages/ClientArea';
 import Blog from './pages/Blog';
@@ -85,6 +86,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/produtos" element={<Menu />} />
+          <Route path="/produto/:id" element={<ProductDetail />} />
           <Route path="/carrinho" element={<Cart />} />
           <Route path="/cliente" element={<ClientArea />} />
           <Route path="/login" element={<ClientArea />} />

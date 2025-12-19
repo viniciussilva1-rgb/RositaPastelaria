@@ -252,20 +252,28 @@ const Home: React.FC = () => {
             {showcaseProducts.map((product) => (
               <div key={product.id} className="group cursor-pointer">
                 <div className="relative h-[400px] overflow-hidden mb-6 bg-gray-100">
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    onError={handleImageError}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  />
+                  <Link to={`/produto/${product.id}`}>
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      onError={handleImageError}
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    />
+                  </Link>
                   {/* Hover Overlay Minimalista */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                     <Link 
+                        to={`/produto/${product.id}`}
+                        className="px-6 py-3 bg-white text-gray-900 uppercase text-xs font-bold tracking-widest hover:bg-gray-100 transition-colors"
+                     >
+                        Ver Detalhes
+                     </Link>
                      <button 
                         onClick={(e) => { e.preventDefault(); handleProductAction(product); }}
-                        className={`px-6 py-3 uppercase text-xs font-bold tracking-widest transition-colors transform translate-y-4 group-hover:translate-y-0 duration-300 ${
+                        className={`px-6 py-3 uppercase text-xs font-bold tracking-widest transition-colors ${
                           product.category === 'Especiais'
                             ? 'bg-gold-500 text-white hover:bg-gold-600'
-                            : 'bg-white text-gray-900 hover:bg-gold-600 hover:text-white'
+                            : 'bg-gray-900 text-white hover:bg-gold-600'
                         }`}
                      >
                         {product.category === 'Especiais' ? 'Pedir Orçamento' : 'Adicionar'}
@@ -278,7 +286,9 @@ const Home: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-serif text-gray-900 mb-2 group-hover:text-gold-600 transition-colors">{product.name}</h3>
+                  <Link to={`/produto/${product.id}`}>
+                    <h3 className="text-xl font-serif text-gray-900 mb-2 group-hover:text-gold-600 transition-colors">{product.name}</h3>
+                  </Link>
                   <span className="inline-block bg-gold-600 text-white font-bold px-4 py-1.5 rounded-full text-base">
                     {product.category === 'Especiais' ? (
                       'Sob Orçamento'
