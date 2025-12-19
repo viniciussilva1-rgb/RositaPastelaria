@@ -1587,20 +1587,28 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Preço (€) *</label>
-                      <div className="relative">
-                        <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          min="0"
-                          required
-                          value={productForm.price || ''}
-                          onChange={e => setProductForm({...productForm, price: parseFloat(e.target.value) || 0})}
-                          className="w-full border border-gray-200 rounded-lg p-3 pl-9 focus:ring-2 focus:ring-gold-400 outline-none"
-                          placeholder="0.00"
-                        />
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {productForm.category === 'Especiais' ? 'Preço (€) - Opcional' : 'Preço (€) *'}
+                      </label>
+                      {productForm.category === 'Especiais' ? (
+                        <div className="bg-gold-50 border border-gold-200 rounded-lg p-3 text-gold-700 text-sm font-medium">
+                          ✨ Sob Orçamento (preço não exibido)
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            required={productForm.category !== 'Especiais'}
+                            value={productForm.price || ''}
+                            onChange={e => setProductForm({...productForm, price: parseFloat(e.target.value) || 0})}
+                            className="w-full border border-gray-200 rounded-lg p-3 pl-9 focus:ring-2 focus:ring-gold-400 outline-none"
+                            placeholder={productForm.category === 'Bolos de Aniversário' ? '0.00 /Kg' : '0.00'}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
