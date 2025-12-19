@@ -27,7 +27,7 @@ const Footer = () => {
             <span className="font-serif text-2xl font-bold tracking-wider mb-6 block text-gold-400">ROSITA</span>
             <p className="text-gray-400 text-sm leading-relaxed">
               Pastelaria especializada em bolos de aniversário e salgados para festas. 
-              Tradição e qualidade para os seus momentos especiais desde 1985.
+              Tradição e qualidade para os seus momentos especiais desde 2019.
             </p>
           </div>
           <div>

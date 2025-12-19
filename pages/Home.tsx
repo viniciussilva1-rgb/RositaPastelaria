@@ -180,7 +180,7 @@ const Home: React.FC = () => {
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center animate-fade-in-up">
           <div className="mb-6 flex justify-center">
              <span className="text-white/80 text-xs font-bold uppercase tracking-[0.4em] border-y border-white/30 py-3 px-6 backdrop-blur-sm">
-               Desde 1985
+               Desde 2019
              </span>
           </div>
           <h1 className="text-5xl md:text-8xl font-serif text-white mb-8 leading-tight drop-shadow-2xl">
