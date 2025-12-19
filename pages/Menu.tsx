@@ -157,12 +157,12 @@ const Menu: React.FC = () => {
                 />
                 
                 {/* Always Visible Price Tag - Elegant */}
-                <div className="absolute top-0 right-0 bg-white px-4 py-2 shadow-sm">
-                   <span className="font-serif italic font-medium text-gray-900">
+                <div className="absolute top-0 right-0 bg-gold-600 px-5 py-3 shadow-lg">
+                   <span className="font-bold text-white text-lg">
                      {product.category === 'Especiais' ? (
-                       <span className="text-gold-600">Sob Orçamento</span>
+                       <span className="text-sm">Sob Orçamento</span>
                      ) : (
-                       <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gray-500">/Kg</span>}</>
+                       <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal">/Kg</span>}</>
                      )}
                    </span>
                 </div>

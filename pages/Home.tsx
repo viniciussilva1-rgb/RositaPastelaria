@@ -279,11 +279,11 @@ const Home: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <h3 className="text-xl font-serif text-gray-900 mb-2 group-hover:text-gold-600 transition-colors">{product.name}</h3>
-                  <span className="text-gold-600 font-medium font-serif italic text-lg">
+                  <span className="inline-block bg-gold-600 text-white font-bold px-4 py-1.5 rounded-full text-base">
                     {product.category === 'Especiais' ? (
                       'Sob Orçamento'
                     ) : (
-                      <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm text-gray-500">/Kg</span>}</>
+                      <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal">/Kg</span>}</>
                     )}
                   </span>
                 </div>
