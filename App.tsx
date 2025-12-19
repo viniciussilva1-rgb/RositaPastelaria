@@ -66,7 +66,7 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   
   // Lista de rotas que podem ser acessadas mesmo em manutenção (admin bypass)
-  const bypassRoutes = ['/admin', '/admin-bypass'];
+  const bypassRoutes = ['/admin', '/admin-bypass', '/cliente', '/login'];
   const isAdminRoute = bypassRoutes.some(route => location.pathname.startsWith(route));
   
   // Se estiver em modo de manutenção E não for rota de admin, mostrar página de manutenção
