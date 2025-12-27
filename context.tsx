@@ -12,6 +12,7 @@ interface DeliveryInfo {
   address?: string;
   deliveryFee?: number;
   distance?: number;
+  nif?: string;
 }
 
 interface ShopContextType {
@@ -309,7 +310,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       deliveryType: deliveryInfo.type,
       deliveryDate: deliveryInfo.date,
       deliveryTime: deliveryInfo.time,
-      deliveryAddress: deliveryInfo.address
+      deliveryAddress: deliveryInfo.address,
+      nif: deliveryInfo.nif
     };
 
     setOrders(prev => [newOrder, ...prev]);

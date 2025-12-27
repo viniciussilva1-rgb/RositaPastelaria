@@ -1420,6 +1420,19 @@ const Admin: React.FC = () => {
                         </div>
                       )}
                       
+                      {/* NIF Info */}
+                      {order.nif && (
+                        <div className="px-4 sm:px-6 py-3 bg-blue-50/50 border-b border-gray-100">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-blue-500 font-bold text-xs">NIF</span>
+                            <div>
+                              <span className="font-medium text-gray-700">Fatura com Contribuinte:</span>
+                              <span className="text-gray-800 ml-2 font-mono font-bold">{order.nif}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Order Items */}
                       <div className="p-4 sm:p-6">
                         <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Itens do Pedido</h4>
@@ -1480,6 +1493,7 @@ Data do Pedido: ${order.date}
 Data de Entrega: ${order.deliveryDate} às ${order.deliveryTime}
 Tipo: ${order.deliveryType === 'delivery' ? 'Entrega ao Domicílio' : 'Levantamento na Loja'}
 ${order.deliveryAddress ? `Morada: ${order.deliveryAddress}` : ''}
+${order.nif ? `NIF: ${order.nif}` : ''}
 Pagamento: ${order.paymentMethod}
 Estado: ${order.status}
 ----------------------------------------

@@ -39,6 +39,10 @@ const Cart: React.FC = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [addressVerified, setAddressVerified] = useState(false);
 
+  // NIF states (fatura com contribuinte)
+  const [wantsNIF, setWantsNIF] = useState(false);
+  const [nif, setNIF] = useState('');
+
   const deliveryConfig = getDeliveryConfig();
 
   // Full delivery address
@@ -198,13 +202,23 @@ const Cart: React.FC = () => {
       return;
     }
     
+    // Validar NIF se o cliente quer fatura com contribuinte
+    if (wantsNIF && nif) {
+      const nifClean = nif.replace(/\s/g, '');
+      if (!/^\d{9}$/.test(nifClean)) {
+        alert("Por favor introduza um NIF válido (9 dígitos).");
+        return;
+      }
+    }
+    
     placeOrder(paymentMethod, {
       type: deliveryType,
       date: selectedDate,
       time: selectedTime,
       address: deliveryType === 'delivery' ? fullDeliveryAddress : undefined,
       deliveryFee: deliveryCalc?.deliveryFee || 0,
-      distance: deliveryCalc?.distance || 0
+      distance: deliveryCalc?.distance || 0,
+      nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined
     });
     
     setStep('success');
@@ -897,6 +911,53 @@ const Cart: React.FC = () => {
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  {/* NIF / Fatura com Contribuinte */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <label className="flex items-center gap-3 cursor-pointer mb-3">
+                      <input
+                        type="checkbox"
+                        checked={wantsNIF}
+                        onChange={(e) => {
+                          setWantsNIF(e.target.checked);
+                          if (!e.target.checked) setNIF('');
+                        }}
+                        className="w-4 h-4 text-gold-600 rounded border-gray-300 focus:ring-gold-500"
+                      />
+                      <span className="text-sm text-gray-700 font-medium">Pretendo fatura com contribuinte</span>
+                    </label>
+                    
+                    {wantsNIF && (
+                      <div className="mt-3">
+                        <label className="block text-sm text-gray-600 mb-1">NIF (Número de Contribuinte)</label>
+                        <input
+                          type="text"
+                          value={nif}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 9);
+                            setNIF(value);
+                          }}
+                          placeholder="123456789"
+                          maxLength={9}
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none text-center text-lg tracking-widest font-mono ${
+                            nif.length === 9 ? 'border-green-400 bg-green-50' : 'border-gray-200'
+                          }`}
+                        />
+                        {nif && nif.length < 9 && (
+                          <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                            <AlertTriangle size={12} />
+                            O NIF deve ter 9 dígitos ({9 - nif.length} em falta)
+                          </p>
+                        )}
+                        {nif.length === 9 && (
+                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                            <CheckCircle2 size={12} />
+                            NIF válido
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 space-y-2">

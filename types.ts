@@ -36,6 +36,7 @@ export interface Order {
   deliveryDate: string;
   deliveryTime: string;
   deliveryAddress?: string;
+  nif?: string;
 }
 
 export interface BlogPost {
