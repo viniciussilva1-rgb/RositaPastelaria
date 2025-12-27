@@ -704,9 +704,33 @@ const ProductDetail: React.FC = () => {
                             >
                               −
                             </button>
-                            <span className="w-10 text-center font-bold text-gray-900">
-                              {currentQty}
-                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={currentQty || ''}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, '');
+                                if (value === '') {
+                                  setFlavorSelections(prev => ({
+                                    ...prev,
+                                    [flavor.id]: 0
+                                  }));
+                                } else {
+                                  const num = parseInt(value);
+                                  // Calcular máximo permitido para este sabor
+                                  const otherFlavorsTotal = totalFlavorsSelected - currentQty;
+                                  const maxAllowed = packQuantity - otherFlavorsTotal;
+                                  const finalQty = Math.min(num, maxAllowed);
+                                  setFlavorSelections(prev => ({
+                                    ...prev,
+                                    [flavor.id]: finalQty
+                                  }));
+                                }
+                              }}
+                              onFocus={(e) => e.target.select()}
+                              className="w-12 text-center font-bold text-gray-900 bg-transparent border border-gray-200 rounded-lg py-1 focus:border-orange-400 focus:outline-none"
+                            />
                             <button
                               onClick={() => {
                                 if (totalFlavorsSelected < packQuantity) {
