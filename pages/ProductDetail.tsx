@@ -151,11 +151,27 @@ const ProductDetail: React.FC = () => {
   };
   const [selectedPack, setSelectedPack] = useState<number>(12);
   
+  // Pack Salgados - Seleção de sabores
+  const [flavorSelections, setFlavorSelections] = useState<Record<string, number>>({});
+  const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
+  
   // Encontrar o produto
   const product = products.find(p => p.id === id);
   
   // Verificar se é Pack Salgados
   const isPackSalgados = product?.category === 'Pack Salgados';
+  
+  // Obter salgados disponíveis para seleção de sabores no pack
+  const availableFlavors = products.filter(p => p.category === 'Salgados');
+  
+  // Calcular total de sabores selecionados
+  const flavorValues = Object.values(flavorSelections) as number[];
+  const totalFlavorsSelected: number = flavorValues.reduce((sum, qty) => sum + qty, 0);
+  const targetUnits = selectedPack * quantity;
+  const remainingUnits = targetUnits - totalFlavorsSelected;
+  
+  // Verificar se pode fazer entrega (mínimo 50 unidades para delivery)
+  const canDelivery = targetUnits >= 50;
   
   // Obter recomendações
   const recommendations = product ? getRecommendations(product, products) : [];
@@ -176,12 +192,40 @@ const ProductDetail: React.FC = () => {
       if (isPackSalgados) {
         const totalUnits = selectedPack * quantity;
         const packPrice = packPrices[selectedPack] * quantity;
+        
+        // Verificar se os sabores foram selecionados corretamente
+        if (totalFlavorsSelected !== totalUnits) {
+          alert(`Por favor, selecione exatamente ${totalUnits} unidades de sabores. Faltam ${remainingUnits} unidades.`);
+          return;
+        }
+        
+        // Verificar se pode fazer entrega
+        if (deliveryType === 'delivery' && !canDelivery) {
+          alert(`Para entrega ao domicílio, o mínimo é de 50 unidades. Atualmente tem ${totalUnits} unidades selecionadas.`);
+          return;
+        }
+        
+        // Criar descrição dos sabores
+        const flavorsDescription = Object.entries(flavorSelections)
+          .filter(([_, qty]) => (qty as number) > 0)
+          .map(([flavorId, qty]) => {
+            const flavor = availableFlavors.find(f => f.id === flavorId);
+            return `${qty}x ${flavor?.name || 'Desconhecido'}`;
+          })
+          .join(', ');
+        
+        const deliveryLabel = deliveryType === 'delivery' ? '🚚 Entrega' : '🏪 Levantamento';
+        
         const packProduct = {
           ...product,
-          name: `${product.name} (${totalUnits} unidades)`,
+          name: `${product.name} (${totalUnits} un.) - ${deliveryLabel}`,
+          description: `Sabores: ${flavorsDescription}`,
           price: packPrice
         };
         addToCart(packProduct);
+        
+        // Limpar seleções após adicionar
+        setFlavorSelections({});
       } else {
         for (let i = 0; i < quantity; i++) {
           addToCart(product);
@@ -334,11 +378,60 @@ const ProductDetail: React.FC = () => {
             
             {/* Pack Salgados - Seleção de Unidades */}
             {isPackSalgados && (
-              <div className="mb-6">
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+              <div className="mb-6 space-y-6">
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                   <p className="text-orange-800 text-sm">
-                    <strong>📦 Pack de Salgados:</strong> Escolha a quantidade de unidades por pack. Quanto maior o pack, melhor o preço por unidade!
+                    <strong>📦 Pack de Salgados:</strong> Escolha a quantidade, os sabores e como deseja receber. Quanto maior o pack, melhor o preço por unidade!
                   </p>
+                </div>
+                
+                {/* Tipo de Entrega */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Como deseja receber?</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setDeliveryType('pickup')}
+                      className={`p-4 rounded-xl font-medium transition-all border-2 flex flex-col items-center gap-2 ${
+                        deliveryType === 'pickup'
+                          ? 'bg-blue-500 text-white border-blue-500 shadow-lg'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="text-2xl">🏪</span>
+                      <span className="font-bold">Levantar na Loja</span>
+                      <span className={`text-xs ${deliveryType === 'pickup' ? 'text-blue-100' : 'text-gray-500'}`}>
+                        Qualquer quantidade
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (canDelivery) {
+                          setDeliveryType('delivery');
+                        } else {
+                          alert(`Para entrega ao domicílio, o mínimo é de 50 unidades. Selecione um pack de 50 ou 100 unidades.`);
+                        }
+                      }}
+                      className={`p-4 rounded-xl font-medium transition-all border-2 flex flex-col items-center gap-2 ${
+                        deliveryType === 'delivery'
+                          ? 'bg-rose-500 text-white border-rose-500 shadow-lg'
+                          : canDelivery
+                            ? 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
+                      }`}
+                    >
+                      <span className="text-2xl">🚚</span>
+                      <span className="font-bold">Entrega ao Domicílio</span>
+                      <span className={`text-xs ${deliveryType === 'delivery' ? 'text-rose-100' : canDelivery ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Mínimo 50 unidades
+                      </span>
+                    </button>
+                  </div>
+                  {!canDelivery && (
+                    <p className="text-amber-600 text-xs mt-2 flex items-center gap-1">
+                      <span>⚠️</span>
+                      Para entrega ao domicílio, selecione um pack de 50 ou 100 unidades.
+                    </p>
+                  )}
                 </div>
                 
                 <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Escolha o seu Pack</h3>
@@ -346,6 +439,7 @@ const ProductDetail: React.FC = () => {
                   {packOptions.map((option) => {
                     const pricePerUnit = (packPrices[option] / option).toFixed(2);
                     const isBestValue = option === 100;
+                    const canDeliveryOption = option >= 50;
                     
                     return (
                       <button
@@ -353,6 +447,11 @@ const ProductDetail: React.FC = () => {
                         onClick={() => {
                           setSelectedPack(option);
                           setQuantity(1);
+                          setFlavorSelections({});
+                          // Se mudar para pack < 50 e está em delivery, mudar para pickup
+                          if (!canDeliveryOption && deliveryType === 'delivery') {
+                            setDeliveryType('pickup');
+                          }
                         }}
                         className={`relative p-4 rounded-xl font-bold transition-all border-2 ${
                           selectedPack === option
@@ -369,6 +468,13 @@ const ProductDetail: React.FC = () => {
                             selectedPack === option ? 'bg-yellow-400 text-green-900' : 'bg-green-500 text-white'
                           }`}>
                             MELHOR PREÇO
+                          </span>
+                        )}
+                        {canDeliveryOption && !isBestValue && (
+                          <span className={`absolute -top-2 -left-2 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                            selectedPack === option ? 'bg-rose-400 text-white' : 'bg-rose-100 text-rose-600'
+                          }`}>
+                            🚚
                           </span>
                         )}
                         <div className="text-2xl mb-1">{option}</div>
@@ -398,25 +504,138 @@ const ProductDetail: React.FC = () => {
                 )}
                 
                 {/* Quantidade de Packs */}
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Quantidade de Packs</h3>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex items-center border border-gray-200 rounded-lg">
-                    <button 
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      −
-                    </button>
-                    <span className="px-4 py-3 font-medium text-gray-900 min-w-[60px] text-center">
-                      {quantity}
-                    </span>
-                    <button 
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      +
-                    </button>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Quantidade de Packs</h3>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center border border-gray-200 rounded-lg">
+                      <button 
+                        onClick={() => {
+                          const newQty = Math.max(1, quantity - 1);
+                          setQuantity(newQty);
+                          setFlavorSelections({});
+                          // Verificar se ainda pode fazer delivery
+                          if (selectedPack * newQty < 50 && deliveryType === 'delivery') {
+                            setDeliveryType('pickup');
+                          }
+                        }}
+                        className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        −
+                      </button>
+                      <span className="px-4 py-3 font-medium text-gray-900 min-w-[60px] text-center">
+                        {quantity}
+                      </span>
+                      <button 
+                        onClick={() => {
+                          setQuantity(quantity + 1);
+                          setFlavorSelections({});
+                        }}
+                        className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
+                </div>
+                
+                {/* Seleção de Sabores */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">
+                    Escolha os Sabores 
+                    <span className={`ml-2 text-xs font-normal px-2 py-1 rounded-full ${
+                      remainingUnits === 0 
+                        ? 'bg-green-100 text-green-700' 
+                        : remainingUnits > 0 
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}>
+                      {remainingUnits === 0 
+                        ? '✓ Completo!' 
+                        : remainingUnits > 0 
+                          ? `Faltam ${remainingUnits} un.`
+                          : `${Math.abs(remainingUnits)} un. a mais`}
+                    </span>
+                  </h3>
+                  <p className="text-gray-500 text-sm mb-4">
+                    Selecione {targetUnits} unidades no total. Pode escolher diferentes quantidades de cada sabor.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {availableFlavors.map((flavor) => {
+                      const currentQty = flavorSelections[flavor.id] || 0;
+                      
+                      return (
+                        <div 
+                          key={flavor.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                            currentQty > 0 
+                              ? 'border-orange-300 bg-orange-50' 
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <img 
+                            src={flavor.image} 
+                            alt={flavor.name}
+                            className="w-14 h-14 rounded-lg object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://placehold.co/56x56/F0EAD6/944D46?text=🥟';
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm truncate">{flavor.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{flavor.description}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                if (currentQty > 0) {
+                                  setFlavorSelections(prev => ({
+                                    ...prev,
+                                    [flavor.id]: currentQty - 1
+                                  }));
+                                }
+                              }}
+                              disabled={currentQty === 0}
+                              className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                currentQty > 0 
+                                  ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              }`}
+                            >
+                              −
+                            </button>
+                            <span className="w-10 text-center font-bold text-gray-900">
+                              {currentQty}
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (totalFlavorsSelected < targetUnits) {
+                                  setFlavorSelections(prev => ({
+                                    ...prev,
+                                    [flavor.id]: currentQty + 1
+                                  }));
+                                }
+                              }}
+                              disabled={totalFlavorsSelected >= targetUnits}
+                              className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                totalFlavorsSelected < targetUnits 
+                                  ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              }`}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {availableFlavors.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500">Nenhum sabor disponível no momento.</p>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Resumo do Pack */}
@@ -429,10 +648,39 @@ const ProductDetail: React.FC = () => {
                     <span className="text-gray-600">Quantidade de packs:</span>
                     <span className="font-bold text-gray-900">{quantity}x</span>
                   </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Tipo de receção:</span>
+                    <span className="font-bold text-gray-900">
+                      {deliveryType === 'delivery' ? '🚚 Entrega ao Domicílio' : '🏪 Levantar na Loja'}
+                    </span>
+                  </div>
+                  {totalFlavorsSelected > 0 && (
+                    <div className="mb-2">
+                      <span className="text-gray-600 text-sm">Sabores selecionados:</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {Object.entries(flavorSelections)
+                          .filter(([_, qty]) => (qty as number) > 0)
+                          .map(([flavorId, qty]) => {
+                            const flavor = availableFlavors.find(f => f.id === flavorId);
+                            return (
+                              <span key={flavorId} className="text-xs bg-white px-2 py-1 rounded-full">
+                                {qty}× {flavor?.name}
+                              </span>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-gray-800 font-medium">Total de unidades:</span>
-                      <span className="font-bold text-orange-600 text-xl">{selectedPack * quantity} unidades</span>
+                      <span className="font-bold text-orange-600 text-xl">{targetUnits} unidades</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-gray-800 font-medium">Sabores selecionados:</span>
+                      <span className={`font-bold text-xl ${remainingUnits === 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {totalFlavorsSelected}/{targetUnits}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800 font-medium">Preço total:</span>
