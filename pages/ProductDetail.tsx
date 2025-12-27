@@ -470,7 +470,7 @@ const ProductDetail: React.FC = () => {
             )}
             
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <button
                 onClick={handleProductAction}
                 className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg transition-all ${
@@ -498,6 +498,70 @@ const ProductDetail: React.FC = () => {
                 <Share2 size={22} />
               </button>
             </div>
+            
+            {/* Sugestão de Pack Salgados para produtos da categoria Salgados */}
+            {product.category === 'Salgados' && (() => {
+              const packSalgados = products.find(p => p.category === 'Pack Salgados');
+              if (!packSalgados) return null;
+              
+              const unitPriceIndividual = product.price;
+              const unitPricePack100 = 0.35; // Preço por unidade no pack de 100
+              const savingsPerUnit = unitPriceIndividual - unitPricePack100;
+              const savingsPer100 = savingsPerUnit * 100;
+              
+              return (
+                <Link 
+                  to={`/produto/${packSalgados.id}`}
+                  className="block mb-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 hover:shadow-lg hover:border-green-300 transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-green-100 flex-shrink-0">
+                      <img 
+                        src={packSalgados.image} 
+                        alt="Pack Salgados"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">💡</span>
+                        <span className="text-green-800 font-bold text-sm uppercase tracking-wide">Quer economizar?</span>
+                        <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">MELHOR PREÇO</span>
+                      </div>
+                      <p className="text-green-700 text-sm mb-3">
+                        Com o <strong>Pack de Salgados</strong> paga apenas <strong>€0.35/unidade</strong> em vez de €{unitPriceIndividual.toFixed(2)}/un.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="bg-white rounded-lg px-3 py-2 border border-green-200">
+                          <div className="text-xs text-gray-500">12 un.</div>
+                          <div className="font-bold text-green-600">€6.00</div>
+                          <div className="text-[10px] text-gray-400">€0.50/un</div>
+                        </div>
+                        <div className="bg-white rounded-lg px-3 py-2 border border-green-200">
+                          <div className="text-xs text-gray-500">25 un.</div>
+                          <div className="font-bold text-green-600">€11.00</div>
+                          <div className="text-[10px] text-gray-400">€0.44/un</div>
+                        </div>
+                        <div className="bg-white rounded-lg px-3 py-2 border border-green-200">
+                          <div className="text-xs text-gray-500">50 un.</div>
+                          <div className="font-bold text-green-600">€20.00</div>
+                          <div className="text-[10px] text-gray-400">€0.40/un</div>
+                        </div>
+                        <div className="bg-green-500 text-white rounded-lg px-3 py-2 relative">
+                          <span className="absolute -top-2 -right-1 bg-yellow-400 text-green-900 text-[8px] font-bold px-1.5 py-0.5 rounded-full">TOP</span>
+                          <div className="text-xs opacity-90">100 un.</div>
+                          <div className="font-bold">€35.00</div>
+                          <div className="text-[10px] opacity-80">€0.35/un</div>
+                        </div>
+                      </div>
+                      <p className="text-green-600 text-xs mt-3 font-medium">
+                        🎉 Poupa até <strong>€{savingsPer100.toFixed(2)}</strong> em cada 100 unidades! Clique para ver o pack.
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })()}
             
             {/* Back Link */}
             <Link 
