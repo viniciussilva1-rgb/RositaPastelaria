@@ -141,15 +141,32 @@ const ProductDetail: React.FC = () => {
   const [addedToCart, setAddedToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
   
-  // Pack Salgados - seleção de unidades com preços diferenciados
-  const packOptions = [12, 25, 50, 100];
-  const packPrices: Record<number, number> = {
-    12: 6.00,    // €0.50/unidade
-    25: 11.00,   // €0.44/unidade
-    50: 20.00,   // €0.40/unidade
-    100: 35.00   // €0.35/unidade - MAIS VANTAJOSO!
+  // Pack Salgados - sistema de preços por faixa de quantidade
+  // Faixas: 12-24 (€0.50/un), 25-49 (€0.44/un), 50-99 (€0.40/un), 100+ (€0.35/un)
+  const getPricePerUnit = (qty: number): number => {
+    if (qty >= 100) return 0.35;
+    if (qty >= 50) return 0.40;
+    if (qty >= 25) return 0.44;
+    return 0.50; // 12-24 ou menos
   };
-  const [selectedPack, setSelectedPack] = useState<number>(12);
+  
+  const getPriceTier = (qty: number): string => {
+    if (qty >= 100) return '100+';
+    if (qty >= 50) return '50-99';
+    if (qty >= 25) return '25-49';
+    return '12-24';
+  };
+  
+  const getNextTierInfo = (qty: number): { nextTier: number; savings: number } | null => {
+    if (qty >= 100) return null;
+    if (qty >= 50) return { nextTier: 100, savings: 0.05 };
+    if (qty >= 25) return { nextTier: 50, savings: 0.04 };
+    if (qty >= 12) return { nextTier: 25, savings: 0.06 };
+    return { nextTier: 12, savings: 0 };
+  };
+  
+  // Quantidade total de salgados no pack (mínimo 12)
+  const [packQuantity, setPackQuantity] = useState<number>(12);
   
   // Pack Salgados - Seleção de sabores
   const [flavorSelections, setFlavorSelections] = useState<Record<string, number>>({});
@@ -167,11 +184,16 @@ const ProductDetail: React.FC = () => {
   // Calcular total de sabores selecionados
   const flavorValues = Object.values(flavorSelections) as number[];
   const totalFlavorsSelected: number = flavorValues.reduce((sum, qty) => sum + qty, 0);
-  const targetUnits = selectedPack * quantity;
-  const remainingUnits = targetUnits - totalFlavorsSelected;
+  const remainingUnits = packQuantity - totalFlavorsSelected;
+  
+  // Preço calculado com base na quantidade
+  const pricePerUnit = getPricePerUnit(packQuantity);
+  const totalPackPrice = packQuantity * pricePerUnit;
+  const currentTier = getPriceTier(packQuantity);
+  const nextTierInfo = getNextTierInfo(packQuantity);
   
   // Verificar se pode fazer entrega (mínimo 50 unidades para delivery)
-  const canDelivery = targetUnits >= 50;
+  const canDelivery = packQuantity >= 50;
   
   // Obter recomendações
   const recommendations = product ? getRecommendations(product, products) : [];
@@ -190,18 +212,21 @@ const ProductDetail: React.FC = () => {
     if (product) {
       // Para Pack Salgados, criar um produto modificado com as unidades no nome e preço correto
       if (isPackSalgados) {
-        const totalUnits = selectedPack * quantity;
-        const packPrice = packPrices[selectedPack] * quantity;
+        // Verificar quantidade mínima (12 unidades)
+        if (packQuantity < 12) {
+          alert('A quantidade mínima para Pack Salgados é de 12 unidades.');
+          return;
+        }
         
         // Verificar se os sabores foram selecionados corretamente
-        if (totalFlavorsSelected !== totalUnits) {
-          alert(`Por favor, selecione exatamente ${totalUnits} unidades de sabores. Faltam ${remainingUnits} unidades.`);
+        if (totalFlavorsSelected !== packQuantity) {
+          alert(`Por favor, selecione exatamente ${packQuantity} unidades de sabores. Faltam ${remainingUnits} unidades.`);
           return;
         }
         
         // Verificar se pode fazer entrega
         if (deliveryType === 'delivery' && !canDelivery) {
-          alert(`Para entrega ao domicílio, o mínimo é de 50 unidades. Atualmente tem ${totalUnits} unidades selecionadas.`);
+          alert(`Para entrega ao domicílio, o mínimo é de 50 unidades. Atualmente tem ${packQuantity} unidades selecionadas.`);
           return;
         }
         
@@ -218,14 +243,15 @@ const ProductDetail: React.FC = () => {
         
         const packProduct = {
           ...product,
-          name: `${product.name} (${totalUnits} un.) - ${deliveryLabel}`,
-          description: `Sabores: ${flavorsDescription}`,
-          price: packPrice
+          name: `${product.name} (${packQuantity} un.) - ${deliveryLabel}`,
+          description: `Sabores: ${flavorsDescription} | Preço: €${pricePerUnit.toFixed(2)}/un`,
+          price: totalPackPrice
         };
         addToCart(packProduct);
         
         // Limpar seleções após adicionar
         setFlavorSelections({});
+        setPackQuantity(12);
       } else {
         for (let i = 0; i < quantity; i++) {
           addToCart(product);
@@ -429,114 +455,162 @@ const ProductDetail: React.FC = () => {
                   {!canDelivery && (
                     <p className="text-amber-600 text-xs mt-2 flex items-center gap-1">
                       <span>⚠️</span>
-                      Para entrega ao domicílio, selecione um pack de 50 ou 100 unidades.
+                      Para entrega ao domicílio, selecione pelo menos 50 unidades.
                     </p>
                   )}
                 </div>
                 
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Escolha o seu Pack</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  {packOptions.map((option) => {
-                    const pricePerUnit = (packPrices[option] / option).toFixed(2);
-                    const isBestValue = option === 100;
-                    const canDeliveryOption = option >= 50;
-                    
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setSelectedPack(option);
-                          setQuantity(1);
-                          setFlavorSelections({});
-                          // Se mudar para pack < 50 e está em delivery, mudar para pickup
-                          if (!canDeliveryOption && deliveryType === 'delivery') {
-                            setDeliveryType('pickup');
-                          }
-                        }}
-                        className={`relative p-4 rounded-xl font-bold transition-all border-2 ${
-                          selectedPack === option
-                            ? isBestValue 
-                              ? 'bg-green-500 text-white border-green-500 shadow-lg scale-105'
-                              : 'bg-orange-500 text-white border-orange-500 shadow-lg scale-105'
-                            : isBestValue
-                              ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        {isBestValue && (
-                          <span className={`absolute -top-2 -right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            selectedPack === option ? 'bg-yellow-400 text-green-900' : 'bg-green-500 text-white'
-                          }`}>
-                            MELHOR PREÇO
-                          </span>
-                        )}
-                        {canDeliveryOption && !isBestValue && (
-                          <span className={`absolute -top-2 -left-2 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
-                            selectedPack === option ? 'bg-rose-400 text-white' : 'bg-rose-100 text-rose-600'
-                          }`}>
-                            🚚
-                          </span>
-                        )}
-                        <div className="text-2xl mb-1">{option}</div>
-                        <div className={`text-xs ${selectedPack === option ? 'opacity-90' : 'opacity-70'}`}>unidades</div>
-                        <div className={`text-lg mt-2 ${selectedPack === option ? '' : isBestValue ? 'text-green-600' : 'text-gold-600'}`}>
-                          €{packPrices[option].toFixed(2)}
+                {/* Tabela de Preços por Faixa */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Tabela de Preços</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { range: '12-24', price: 0.50, min: 12, max: 24 },
+                      { range: '25-49', price: 0.44, min: 25, max: 49 },
+                      { range: '50-99', price: 0.40, min: 50, max: 99 },
+                      { range: '100+', price: 0.35, min: 100, max: Infinity }
+                    ].map((tier) => {
+                      const isActive = packQuantity >= tier.min && (tier.max === Infinity ? true : packQuantity <= tier.max);
+                      const isBest = tier.range === '100+';
+                      
+                      return (
+                        <div 
+                          key={tier.range}
+                          className={`relative p-3 rounded-xl text-center border-2 transition-all ${
+                            isActive
+                              ? isBest 
+                                ? 'bg-green-500 text-white border-green-500 shadow-lg'
+                                : 'bg-orange-500 text-white border-orange-500 shadow-lg'
+                              : isBest
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-gray-50 text-gray-600 border-gray-200'
+                          }`}
+                        >
+                          {isBest && (
+                            <span className={`absolute -top-2 -right-2 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                              isActive ? 'bg-yellow-400 text-green-900' : 'bg-green-500 text-white'
+                            }`}>
+                              MELHOR
+                            </span>
+                          )}
+                          {tier.min >= 50 && !isBest && (
+                            <span className={`absolute -top-2 -left-2 text-[8px] font-bold px-1 py-0.5 rounded-full ${
+                              isActive ? 'bg-rose-400 text-white' : 'bg-rose-100 text-rose-600'
+                            }`}>
+                              🚚
+                            </span>
+                          )}
+                          <div className="text-xs font-medium mb-1">{tier.range}</div>
+                          <div className="text-lg font-bold">€{tier.price.toFixed(2)}</div>
+                          <div className="text-[10px] opacity-80">/unidade</div>
                         </div>
-                        <div className={`text-[10px] mt-1 ${selectedPack === option ? 'opacity-80' : 'opacity-60'}`}>
-                          €{pricePerUnit}/un
-                        </div>
-                      </button>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
                 
-                {/* Destaque economia pack 100 */}
-                {selectedPack !== 100 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                    <p className="text-green-700 text-sm flex items-center gap-2">
-                      <span className="text-lg">💡</span>
-                      <span>
-                        <strong>Dica:</strong> No pack de 100 unidades paga apenas €0.35/un em vez de €{(packPrices[selectedPack] / selectedPack).toFixed(2)}/un. 
-                        Poupa €{((packPrices[selectedPack] / selectedPack - 0.35) * 100).toFixed(2)} em cada 100 unidades!
-                      </span>
-                    </p>
-                  </div>
-                )}
-                
-                {/* Quantidade de Packs */}
-                <div>
-                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Quantidade de Packs</h3>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex items-center border border-gray-200 rounded-lg">
+                {/* Quantidade Total de Unidades */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">
+                    Quantidade de Unidades
+                    <span className="ml-2 text-xs font-normal text-gray-500">(mínimo 12)</span>
+                  </h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
                       <button 
                         onClick={() => {
-                          const newQty = Math.max(1, quantity - 1);
-                          setQuantity(newQty);
-                          setFlavorSelections({});
-                          // Verificar se ainda pode fazer delivery
-                          if (selectedPack * newQty < 50 && deliveryType === 'delivery') {
-                            setDeliveryType('pickup');
+                          const newQty = Math.max(12, packQuantity - 1);
+                          if (newQty !== packQuantity) {
+                            setPackQuantity(newQty);
+                            setFlavorSelections({});
+                            if (newQty < 50 && deliveryType === 'delivery') {
+                              setDeliveryType('pickup');
+                            }
                           }
                         }}
-                        className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                        disabled={packQuantity <= 12}
+                        className={`px-4 py-3 text-lg font-bold transition-colors ${
+                          packQuantity <= 12 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
                       >
                         −
                       </button>
-                      <span className="px-4 py-3 font-medium text-gray-900 min-w-[60px] text-center">
-                        {quantity}
-                      </span>
+                      <input
+                        type="number"
+                        min={12}
+                        value={packQuantity}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 12;
+                          const newQty = Math.max(12, val);
+                          setPackQuantity(newQty);
+                          setFlavorSelections({});
+                          if (newQty < 50 && deliveryType === 'delivery') {
+                            setDeliveryType('pickup');
+                          }
+                        }}
+                        className="w-24 px-2 py-3 text-center font-bold text-xl text-gray-900 border-0 focus:outline-none focus:ring-0"
+                      />
                       <button 
                         onClick={() => {
-                          setQuantity(quantity + 1);
+                          setPackQuantity(packQuantity + 1);
                           setFlavorSelections({});
                         }}
-                        className="px-4 py-3 text-gray-600 hover:text-gray-900 transition-colors"
+                        className="px-4 py-3 text-lg font-bold bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
                       >
                         +
                       </button>
                     </div>
+                    <div className="text-sm">
+                      <span className={`font-bold text-lg ${packQuantity >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
+                        €{pricePerUnit.toFixed(2)}
+                      </span>
+                      <span className="text-gray-500">/unidade</span>
+                    </div>
+                  </div>
+                  
+                  {/* Botões rápidos de quantidade */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {[12, 25, 50, 100, 150, 200].map((qty) => (
+                      <button
+                        key={qty}
+                        onClick={() => {
+                          setPackQuantity(qty);
+                          setFlavorSelections({});
+                          if (qty < 50 && deliveryType === 'delivery') {
+                            setDeliveryType('pickup');
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                          packQuantity === qty
+                            ? qty >= 100 
+                              ? 'bg-green-500 text-white'
+                              : 'bg-orange-500 text-white'
+                            : qty >= 100
+                              ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                              : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {qty} un.
+                      </button>
+                    ))}
                   </div>
                 </div>
+                
+                {/* Dica de economia */}
+                {nextTierInfo && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                    <p className="text-green-700 text-sm flex items-center gap-2">
+                      <span className="text-lg">💡</span>
+                      <span>
+                        <strong>Dica:</strong> Ao pedir {nextTierInfo.nextTier} unidades ou mais, 
+                        paga €{(pricePerUnit - nextTierInfo.savings).toFixed(2)}/un em vez de €{pricePerUnit.toFixed(2)}/un.
+                        {nextTierInfo.nextTier === 100 && ' É o melhor preço!'}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 
                 {/* Seleção de Sabores */}
                 <div>
@@ -557,7 +631,7 @@ const ProductDetail: React.FC = () => {
                     </span>
                   </h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    Selecione {targetUnits} unidades no total. Pode escolher diferentes quantidades de cada sabor.
+                    Selecione {packQuantity} unidades no total. Pode escolher diferentes quantidades de cada sabor.
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -609,16 +683,16 @@ const ProductDetail: React.FC = () => {
                             </span>
                             <button
                               onClick={() => {
-                                if (totalFlavorsSelected < targetUnits) {
+                                if (totalFlavorsSelected < packQuantity) {
                                   setFlavorSelections(prev => ({
                                     ...prev,
                                     [flavor.id]: currentQty + 1
                                   }));
                                 }
                               }}
-                              disabled={totalFlavorsSelected >= targetUnits}
+                              disabled={totalFlavorsSelected >= packQuantity}
                               className={`w-8 h-8 rounded-lg font-bold transition-colors ${
-                                totalFlavorsSelected < targetUnits 
+                                totalFlavorsSelected < packQuantity 
                                   ? 'bg-orange-500 text-white hover:bg-orange-600' 
                                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                               }`}
@@ -639,14 +713,16 @@ const ProductDetail: React.FC = () => {
                 </div>
                 
                 {/* Resumo do Pack */}
-                <div className={`rounded-xl p-4 ${selectedPack === 100 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <div className={`rounded-xl p-4 ${packQuantity >= 100 ? 'bg-green-100' : 'bg-gray-100'}`}>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-600">Pack selecionado:</span>
-                    <span className="font-bold text-gray-900">{selectedPack} unidades × €{packPrices[selectedPack].toFixed(2)}</span>
+                    <span className="text-gray-600">Quantidade:</span>
+                    <span className="font-bold text-gray-900">{packQuantity} unidades</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-600">Quantidade de packs:</span>
-                    <span className="font-bold text-gray-900">{quantity}x</span>
+                    <span className="text-gray-600">Faixa de preço:</span>
+                    <span className={`font-bold ${packQuantity >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
+                      {currentTier} un. (€{pricePerUnit.toFixed(2)}/un)
+                    </span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Tipo de receção:</span>
@@ -674,17 +750,17 @@ const ProductDetail: React.FC = () => {
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-gray-800 font-medium">Total de unidades:</span>
-                      <span className="font-bold text-orange-600 text-xl">{targetUnits} unidades</span>
+                      <span className="font-bold text-orange-600 text-xl">{packQuantity} unidades</span>
                     </div>
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-gray-800 font-medium">Sabores selecionados:</span>
                       <span className={`font-bold text-xl ${remainingUnits === 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {totalFlavorsSelected}/{targetUnits}
+                        {totalFlavorsSelected}/{packQuantity}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800 font-medium">Preço total:</span>
-                      <span className="font-bold text-green-600 text-xl">€{(packPrices[selectedPack] * quantity).toFixed(2)}</span>
+                      <span className="font-bold text-green-600 text-xl">€{totalPackPrice.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
