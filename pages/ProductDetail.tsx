@@ -167,6 +167,7 @@ const ProductDetail: React.FC = () => {
   
   // Quantidade total de salgados no pack (mínimo 12)
   const [packQuantity, setPackQuantity] = useState<number>(12);
+  const [packQuantityInput, setPackQuantityInput] = useState<string>('12');
   
   // Pack Salgados - Seleção de sabores
   const [flavorSelections, setFlavorSelections] = useState<Record<string, number>>({});
@@ -252,6 +253,7 @@ const ProductDetail: React.FC = () => {
         // Limpar seleções após adicionar
         setFlavorSelections({});
         setPackQuantity(12);
+        setPackQuantityInput('12');
       } else {
         for (let i = 0; i < quantity; i++) {
           addToCart(product);
@@ -522,6 +524,7 @@ const ProductDetail: React.FC = () => {
                           const newQty = Math.max(12, packQuantity - 1);
                           if (newQty !== packQuantity) {
                             setPackQuantity(newQty);
+                            setPackQuantityInput(String(newQty));
                             setFlavorSelections({});
                             if (newQty < 50 && deliveryType === 'delivery') {
                               setDeliveryType('pickup');
@@ -538,15 +541,35 @@ const ProductDetail: React.FC = () => {
                         −
                       </button>
                       <input
-                        type="number"
-                        min={12}
-                        value={packQuantity}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={packQuantityInput}
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || 12;
-                          const newQty = Math.max(12, val);
-                          setPackQuantity(newQty);
+                          // Permitir apenas números ou vazio
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          setPackQuantityInput(value);
+                          
+                          // Atualizar packQuantity se for um número válido
+                          if (value !== '') {
+                            const num = parseInt(value);
+                            if (!isNaN(num) && num >= 1) {
+                              setPackQuantity(Math.max(12, num));
+                              setFlavorSelections({});
+                              if (num < 50 && deliveryType === 'delivery') {
+                                setDeliveryType('pickup');
+                              }
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          // Ao sair do campo, garantir mínimo de 12
+                          const num = parseInt(packQuantityInput) || 12;
+                          const finalQty = Math.max(12, num);
+                          setPackQuantity(finalQty);
+                          setPackQuantityInput(String(finalQty));
                           setFlavorSelections({});
-                          if (newQty < 50 && deliveryType === 'delivery') {
+                          if (finalQty < 50 && deliveryType === 'delivery') {
                             setDeliveryType('pickup');
                           }
                         }}
@@ -554,7 +577,9 @@ const ProductDetail: React.FC = () => {
                       />
                       <button 
                         onClick={() => {
-                          setPackQuantity(packQuantity + 1);
+                          const newQty = packQuantity + 1;
+                          setPackQuantity(newQty);
+                          setPackQuantityInput(String(newQty));
                           setFlavorSelections({});
                         }}
                         className="px-4 py-3 text-lg font-bold bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
@@ -577,6 +602,7 @@ const ProductDetail: React.FC = () => {
                         key={qty}
                         onClick={() => {
                           setPackQuantity(qty);
+                          setPackQuantityInput(String(qty));
                           setFlavorSelections({});
                           if (qty < 50 && deliveryType === 'delivery') {
                             setDeliveryType('pickup');
