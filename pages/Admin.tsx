@@ -367,14 +367,21 @@ const Admin: React.FC = () => {
   const handleProductSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!productForm.name || productForm.price <= 0) {
-      alert("Por favor preencha o nome e um preço válido.");
+    // Validação: nome obrigatório, preço > 0 (exceto para categoria "Especiais")
+    const isEspeciais = productForm.category === 'Especiais';
+    if (!productForm.name) {
+      alert("Por favor preencha o nome do produto.");
+      return;
+    }
+    if (!isEspeciais && productForm.price <= 0) {
+      alert("Por favor preencha um preço válido.");
       return;
     }
     
     const cleanedProduct = {
       ...productForm,
-      image: productForm.image.trim()
+      image: productForm.image.trim(),
+      price: isEspeciais ? 0 : productForm.price // Especiais sempre têm preço 0
     };
 
     try {
