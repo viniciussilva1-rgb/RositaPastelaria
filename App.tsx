@@ -13,9 +13,9 @@ import MaintenanceMode from './components/MaintenanceMode';
 
 // ============================================
 // 🚧 MODO DE MANUTENÇÃO
-// Altere para false quando o site estiver pronto
+// Altere para true para ativar manutenção
 // ============================================
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 const Footer = () => {
   const { siteConfig, getClosedDayName } = useShop();
