@@ -352,14 +352,19 @@ const Admin: React.FC = () => {
     setShowDeleteConfirm(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (showDeleteConfirm) {
-      deleteProduct(showDeleteConfirm);
-      setShowDeleteConfirm(null);
+      try {
+        await deleteProduct(showDeleteConfirm);
+        setShowDeleteConfirm(null);
+      } catch (error) {
+        console.error('Erro ao eliminar produto:', error);
+        alert('Erro ao eliminar produto. Verifique a conexão.');
+      }
     }
   };
 
-  const handleProductSave = (e: React.FormEvent) => {
+  const handleProductSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!productForm.name || productForm.price <= 0) {
@@ -372,40 +377,45 @@ const Admin: React.FC = () => {
       image: productForm.image.trim()
     };
 
-    if (products.some(p => p.id === cleanedProduct.id)) {
-      updateProduct(cleanedProduct);
-    } else {
-      addProduct(cleanedProduct);
+    try {
+      if (products.some(p => p.id === cleanedProduct.id)) {
+        await updateProduct(cleanedProduct);
+      } else {
+        await addProduct(cleanedProduct);
+      }
+      
+      setProductSavedSuccess(true);
+      setTimeout(() => {
+        setIsEditingProduct(false);
+        setProductSavedSuccess(false);
+      }, 600);
+    } catch (error) {
+      console.error('Erro ao guardar produto:', error);
+      alert('Erro ao guardar produto. Verifique as permissões do Firebase.');
     }
-    
-    setProductSavedSuccess(true);
-    setTimeout(() => {
-      setIsEditingProduct(false);
-      setProductSavedSuccess(false);
-    }, 600);
   };
 
-  const handleSiteConfigSave = (e: React.FormEvent) => {
+  const handleSiteConfigSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Verificar se a imagem Base64 não é muito grande (máx ~1.5MB para localStorage seguro)
+      // Verificar se a imagem Base64 não é muito grande (máx ~1MB para Firestore)
       const promoBannerImage = siteForm.promoBanner.image;
-      if (promoBannerImage && promoBannerImage.startsWith('data:') && promoBannerImage.length > 1500000) {
-        alert('A imagem do banner é muito grande. Por favor, use uma imagem menor (máx. 1MB) ou forneça uma URL externa.');
+      if (promoBannerImage && promoBannerImage.startsWith('data:') && promoBannerImage.length > 1000000) {
+        alert('A imagem do banner é muito grande. Por favor, use uma imagem menor (máx. 700KB) ou forneça uma URL externa.');
         return;
       }
       const heroImage = siteForm.hero.image;
-      if (heroImage && heroImage.startsWith('data:') && heroImage.length > 1500000) {
-        alert('A imagem do hero é muito grande. Por favor, use uma imagem menor (máx. 1MB) ou forneça uma URL externa.');
+      if (heroImage && heroImage.startsWith('data:') && heroImage.length > 1000000) {
+        alert('A imagem do hero é muito grande. Por favor, use uma imagem menor (máx. 700KB) ou forneça uma URL externa.');
         return;
       }
       
-      updateSiteConfig(siteForm);
+      await updateSiteConfig(siteForm);
       setSiteSaved(true);
       setTimeout(() => setSiteSaved(false), 3000);
     } catch (error) {
       console.error('Erro ao guardar configurações:', error);
-      alert('Erro ao guardar as alterações. A imagem pode ser muito grande. Tente usar uma URL externa ou uma imagem menor.');
+      alert('Erro ao guardar as alterações. Verifique as permissões do Firebase ou use imagens menores/URLs externas.');
     }
   };
 
@@ -430,14 +440,19 @@ const Admin: React.FC = () => {
     setShowDeleteTestimonialConfirm(id);
   };
 
-  const confirmDeleteTestimonial = () => {
+  const confirmDeleteTestimonial = async () => {
     if (showDeleteTestimonialConfirm) {
-      deleteTestimonial(showDeleteTestimonialConfirm);
-      setShowDeleteTestimonialConfirm(null);
+      try {
+        await deleteTestimonial(showDeleteTestimonialConfirm);
+        setShowDeleteTestimonialConfirm(null);
+      } catch (error) {
+        console.error('Erro ao eliminar avaliação:', error);
+        alert('Erro ao eliminar avaliação.');
+      }
     }
   };
 
-  const handleTestimonialSave = (e: React.FormEvent) => {
+  const handleTestimonialSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!testimonialForm.name || !testimonialForm.text) {
@@ -451,21 +466,30 @@ const Admin: React.FC = () => {
       avatar: testimonialForm.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonialForm.name)}&background=D4AF37&color=fff`
     };
 
-    if (testimonials.some(t => t.id === finalTestimonial.id)) {
-      updateTestimonial(finalTestimonial);
-    } else {
-      addTestimonial(finalTestimonial);
+    try {
+      if (testimonials.some(t => t.id === finalTestimonial.id)) {
+        await updateTestimonial(finalTestimonial);
+      } else {
+        await addTestimonial(finalTestimonial);
+      }
+      
+      setTestimonialSavedSuccess(true);
+      setTimeout(() => {
+        setIsEditingTestimonial(false);
+        setTestimonialSavedSuccess(false);
+      }, 600);
+    } catch (error) {
+      console.error('Erro ao guardar avaliação:', error);
+      alert('Erro ao guardar avaliação.');
     }
-    
-    setTestimonialSavedSuccess(true);
-    setTimeout(() => {
-      setIsEditingTestimonial(false);
-      setTestimonialSavedSuccess(false);
-    }, 600);
   };
 
-  const toggleTestimonialApproval = (testimonial: Testimonial) => {
-    updateTestimonial({ ...testimonial, isApproved: !testimonial.isApproved });
+  const toggleTestimonialApproval = async (testimonial: Testimonial) => {
+    try {
+      await updateTestimonial({ ...testimonial, isApproved: !testimonial.isApproved });
+    } catch (error) {
+      console.error('Erro ao atualizar aprovação:', error);
+    }
   };
 
   // Blog Post Handlers
@@ -489,14 +513,19 @@ const Admin: React.FC = () => {
     setShowDeleteBlogPostConfirm(id);
   };
 
-  const confirmDeleteBlogPost = () => {
+  const confirmDeleteBlogPost = async () => {
     if (showDeleteBlogPostConfirm) {
-      deleteBlogPost(showDeleteBlogPostConfirm);
-      setShowDeleteBlogPostConfirm(null);
+      try {
+        await deleteBlogPost(showDeleteBlogPostConfirm);
+        setShowDeleteBlogPostConfirm(null);
+      } catch (error) {
+        console.error('Erro ao eliminar história:', error);
+        alert('Erro ao eliminar história.');
+      }
     }
   };
 
-  const handleBlogPostSave = (e: React.FormEvent) => {
+  const handleBlogPostSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!blogPostForm.title || !blogPostForm.excerpt) {
@@ -504,17 +533,22 @@ const Admin: React.FC = () => {
       return;
     }
 
-    if (blogPosts.some(p => p.id === blogPostForm.id)) {
-      updateBlogPost(blogPostForm);
-    } else {
-      addBlogPost(blogPostForm);
+    try {
+      if (blogPosts.some(p => p.id === blogPostForm.id)) {
+        await updateBlogPost(blogPostForm);
+      } else {
+        await addBlogPost(blogPostForm);
+      }
+      
+      setBlogPostSavedSuccess(true);
+      setTimeout(() => {
+        setIsEditingBlogPost(false);
+        setBlogPostSavedSuccess(false);
+      }, 600);
+    } catch (error) {
+      console.error('Erro ao guardar história:', error);
+      alert('Erro ao guardar história.');
     }
-    
-    setBlogPostSavedSuccess(true);
-    setTimeout(() => {
-      setIsEditingBlogPost(false);
-      setBlogPostSavedSuccess(false);
-    }, 600);
   };
 
   const getStatusColor = (status: string) => {
