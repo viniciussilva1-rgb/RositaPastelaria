@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS, BLOG_POSTS } from './constants';
-import { db, COLLECTIONS, firestoreHelpers } from './services/firebase';
+import { db, COLLECTIONS, firestoreHelpers, authHelpers, ADMIN_EMAIL, FirebaseUser } from './services/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 // Categorias iniciais
@@ -49,8 +49,9 @@ interface ShopContextType {
   cartTotal: number;
   
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   login: () => void;
-  adminLogin: (email: string, password: string) => boolean;
+  adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   
   orders: Order[];
@@ -63,13 +64,18 @@ interface ShopContextType {
   isDateClosed: (date: Date) => boolean;
   
   isLoading: boolean;
+  authLoading: boolean;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Firebase Auth State
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   // Products State
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
@@ -92,11 +98,28 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return saved ? JSON.parse(saved) : [];
   });
 
-  // User State (local only)
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('rosita_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // User State - now derived from Firebase Auth
+  const [user, setUser] = useState<User | null>(null);
+
+  // Listen for Firebase Auth state changes
+  useEffect(() => {
+    const unsubscribe = authHelpers.onAuthChange((fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser && fbUser.email === ADMIN_EMAIL) {
+        setUser({
+          id: fbUser.uid,
+          name: 'Rosita Admin',
+          email: fbUser.email,
+          isAdmin: true
+        });
+      } else {
+        setUser(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Orders State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -335,6 +358,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Auth Actions
   const login = () => {
+    // Login de cliente normal (não usado, mantido para compatibilidade)
     setUser({
       id: 'u12345',
       name: 'Maria Silva',
@@ -344,25 +368,30 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const adminLogin = (email: string, password: string): boolean => {
-    const ADMIN_EMAIL = 'rositapastelariaofc@gmail.com';
-    const ADMIN_PASSWORD = 'RositapastelariaRQ2025';
-    
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      setUser({
-        id: 'admin01',
-        name: 'Rosita Admin',
-        email: ADMIN_EMAIL,
-        avatar: 'https://ui-avatars.com/api/?name=Rosita+Admin&background=000&color=fff',
-        isAdmin: true
-      });
-      return true;
+  const adminLogin = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const fbUser = await authHelpers.login(email, password);
+      if (fbUser.email === ADMIN_EMAIL) {
+        // User state will be set by the auth listener
+        return true;
+      } else {
+        // Not admin, logout
+        await authHelpers.logout();
+        return false;
+      }
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authHelpers.logout();
+      setUser(null);
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   // Order Actions
@@ -436,10 +465,10 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
-      user, login, adminLogin, logout,
+      user, firebaseUser, login, adminLogin, logout,
       orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
       isOrderingEnabled, getClosedDayName, isDateClosed,
-      isLoading
+      isLoading, authLoading
     }}>
       {children}
     </ShopContext.Provider>

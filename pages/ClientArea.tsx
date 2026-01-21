@@ -22,19 +22,30 @@ const ClientArea: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setIsLoading(true);
     
-    // Simular delay de autenticação
-    setTimeout(() => {
-      const success = adminLogin(adminEmail, adminPassword);
+    try {
+      const success = await adminLogin(adminEmail, adminPassword);
       if (!success) {
-        setLoginError('Email ou senha incorretos. Tente novamente.');
+        setLoginError('Email ou senha incorretos. Verifique suas credenciais.');
       }
+    } catch (error: any) {
+      console.error('Erro no login:', error);
+      if (error?.code === 'auth/invalid-credential' || error?.code === 'auth/wrong-password') {
+        setLoginError('Email ou senha incorretos.');
+      } else if (error?.code === 'auth/user-not-found') {
+        setLoginError('Usuário não encontrado. Verifique o email.');
+      } else if (error?.code === 'auth/too-many-requests') {
+        setLoginError('Muitas tentativas. Aguarde um momento.');
+      } else {
+        setLoginError('Erro ao fazer login. Tente novamente.');
+      }
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const getStatusColor = (status: string) => {

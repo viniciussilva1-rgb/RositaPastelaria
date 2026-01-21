@@ -1,6 +1,13 @@
 // Firebase Configuration for Rosita Pastelaria
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch } from "firebase/firestore";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  User as FirebaseUser
+} from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,6 +24,12 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
 export const db = getFirestore(app);
+
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+
+// Admin email (the only user allowed to edit)
+export const ADMIN_EMAIL = "rositapastelariaofc@gmail.com";
 
 // Collection references
 export const COLLECTIONS = {
@@ -114,4 +127,35 @@ export const firestoreHelpers = {
   }
 };
 
+// Firebase Auth helpers
+export const authHelpers = {
+  // Login with email and password
+  async login(email: string, password: string): Promise<FirebaseUser> {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  },
+
+  // Logout
+  async logout(): Promise<void> {
+    await signOut(auth);
+  },
+
+  // Get current user
+  getCurrentUser(): FirebaseUser | null {
+    return auth.currentUser;
+  },
+
+  // Check if current user is admin
+  isAdmin(): boolean {
+    const user = auth.currentUser;
+    return user?.email === ADMIN_EMAIL;
+  },
+
+  // Subscribe to auth state changes
+  onAuthChange(callback: (user: FirebaseUser | null) => void): () => void {
+    return onAuthStateChanged(auth, callback);
+  }
+};
+
 export { collection, doc, getDocs, setDoc, deleteDoc, onSnapshot };
+export type { FirebaseUser };
