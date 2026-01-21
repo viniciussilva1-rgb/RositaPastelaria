@@ -238,12 +238,12 @@ const Menu: React.FC = () => {
                   {product.category}
                 </span>
                 <Link to={`/produto/${product.id}`}>
-                  <h3 className="text-2xl font-serif text-gray-900 mb-3 group-hover:text-gold-600 transition-colors cursor-pointer">
+                  <h3 className="text-xl font-serif text-gray-900 mb-3 group-hover:text-gold-600 transition-colors cursor-pointer line-clamp-1 min-h-[1.75rem]">
                     {product.name}
                   </h3>
                 </Link>
-                <p className="text-gray-500 text-sm font-light leading-relaxed line-clamp-2 mb-3">
-                  {product.description}
+                <p className="text-gray-500 text-sm font-light leading-relaxed line-clamp-2 min-h-[2.5rem] mb-3">
+                  {product.description.length > 100 ? product.description.substring(0, 100) + '...' : product.description}
                 </p>
                 <Link 
                   to={`/produto/${product.id}`}
