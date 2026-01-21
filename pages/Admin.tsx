@@ -783,7 +783,7 @@ const Admin: React.FC = () => {
                           <div className="w-32 bg-gray-100 rounded-full h-2">
                             <div 
                               className="bg-gold-500 h-2 rounded-full transition-all"
-                              style={{ width: `${(count / stats.totalProducts) * 100}%` }}
+                              style={{ width: `${((count as number) / stats.totalProducts) * 100}%` }}
                             />
                           </div>
                           <span className="text-sm font-medium text-gray-900 w-8">{count}</span>
@@ -1990,6 +1990,128 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                       </div>
                     </div>
                   </form>
+                </div>
+              </div>
+
+              {/* Business Settings - Configurações de Funcionamento */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 bg-gray-50">
+                  <h2 className="font-bold text-gray-800 flex items-center gap-2">
+                    <Clock size={18} className="text-gold-600" />
+                    Configurações de Funcionamento
+                  </h2>
+                </div>
+                <div className="p-6 space-y-6">
+                  {/* Dia de Folga */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Dia de Folga Semanal</label>
+                    <select
+                      value={siteForm.businessSettings?.closedDay ?? 1}
+                      onChange={e => setSiteForm({
+                        ...siteForm, 
+                        businessSettings: {
+                          ...siteForm.businessSettings,
+                          closedDay: parseInt(e.target.value),
+                          isAcceptingOrders: siteForm.businessSettings?.isAcceptingOrders ?? true,
+                          notAcceptingMessage: siteForm.businessSettings?.notAcceptingMessage ?? 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'
+                        }
+                      })}
+                      className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
+                    >
+                      <option value={0}>Domingo</option>
+                      <option value={1}>Segunda-feira</option>
+                      <option value={2}>Terça-feira</option>
+                      <option value={3}>Quarta-feira</option>
+                      <option value={4}>Quinta-feira</option>
+                      <option value={5}>Sexta-feira</option>
+                      <option value={6}>Sábado</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Os clientes não poderão agendar entregas/levantamentos neste dia.
+                    </p>
+                  </div>
+
+                  {/* Toggle Aceitar Encomendas */}
+                  <div className="border-t border-gray-100 pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Aceitar Encomendas</label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Desative para pausar temporariamente o recebimento de encomendas
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSiteForm({
+                          ...siteForm,
+                          businessSettings: {
+                            ...siteForm.businessSettings,
+                            closedDay: siteForm.businessSettings?.closedDay ?? 1,
+                            isAcceptingOrders: !(siteForm.businessSettings?.isAcceptingOrders ?? true),
+                            notAcceptingMessage: siteForm.businessSettings?.notAcceptingMessage ?? 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'
+                          }
+                        })}
+                        className={`relative inline-flex h-7 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-offset-2 ${
+                          siteForm.businessSettings?.isAcceptingOrders !== false ? 'bg-emerald-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            siteForm.businessSettings?.isAcceptingOrders !== false ? 'translate-x-7' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Status Indicator */}
+                    <div className={`mt-4 p-4 rounded-lg flex items-center gap-3 ${
+                      siteForm.businessSettings?.isAcceptingOrders !== false 
+                        ? 'bg-emerald-50 border border-emerald-200' 
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      {siteForm.businessSettings?.isAcceptingOrders !== false ? (
+                        <>
+                          <CheckCircle size={20} className="text-emerald-600" />
+                          <div>
+                            <p className="font-medium text-emerald-800">A aceitar encomendas</p>
+                            <p className="text-xs text-emerald-600">Os clientes podem fazer encomendas normalmente.</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle size={20} className="text-red-600" />
+                          <div>
+                            <p className="font-medium text-red-800">Encomendas pausadas</p>
+                            <p className="text-xs text-red-600">Os clientes verão a mensagem de indisponibilidade.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mensagem de Indisponibilidade */}
+                  {siteForm.businessSettings?.isAcceptingOrders === false && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mensagem para Clientes
+                      </label>
+                      <textarea
+                        value={siteForm.businessSettings?.notAcceptingMessage || 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'}
+                        onChange={e => setSiteForm({
+                          ...siteForm,
+                          businessSettings: {
+                            ...siteForm.businessSettings,
+                            closedDay: siteForm.businessSettings?.closedDay ?? 1,
+                            isAcceptingOrders: false,
+                            notAcceptingMessage: e.target.value
+                          }
+                        })}
+                        rows={3}
+                        placeholder="Mensagem que será exibida aos clientes..."
+                        className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none resize-none"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

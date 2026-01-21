@@ -3,7 +3,7 @@ import { useShop } from '../context';
 import { 
   Trash2, Plus, Minus, ArrowLeft, CheckCircle, 
   Calendar, Clock, MapPin, Home, Store, ChevronLeft, ChevronRight,
-  Truck, Loader2, AlertTriangle, CheckCircle2
+  Truck, Loader2, AlertTriangle, CheckCircle2, AlertCircle, XCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DeliveryType } from '../types';
@@ -17,7 +17,7 @@ const TIME_SLOTS = [
 ];
 
 const Cart: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, placeOrder, user, getUnavailableDeliverySlots } = useShop();
+  const { cart, removeFromCart, updateQuantity, cartTotal, placeOrder, user, getUnavailableDeliverySlots, isOrderingEnabled, siteConfig, isDateClosed, getClosedDayName } = useShop();
   const [step, setStep] = useState<'cart' | 'delivery' | 'checkout' | 'success'>('cart');
   const [paymentMethod, setPaymentMethod] = useState('');
   const navigate = useNavigate();
@@ -82,7 +82,7 @@ const Cart: React.FC = () => {
     return days;
   }, [currentMonth]);
 
-  // Check if a date is valid (not in the past, not Sunday)
+  // Check if a date is valid (not in the past, not closed day)
   const isDateValid = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const today = new Date();
@@ -91,9 +91,10 @@ const Cart: React.FC = () => {
     const minDate = new Date(today);
     minDate.setDate(minDate.getDate() + 1);
     
-    const isSunday = date.getDay() === 0;
+    // Verificar se é dia de folga (dinâmico)
+    const isClosed = isDateClosed(date);
     
-    return date >= minDate && !isSunday;
+    return date >= minDate && !isClosed;
   };
 
   const formatDate = (day: number) => {
@@ -244,6 +245,40 @@ const Cart: React.FC = () => {
     const today = new Date();
     return currentMonth.getMonth() > today.getMonth() || currentMonth.getFullYear() > today.getFullYear();
   };
+
+  // Verificar se as encomendas estão pausadas
+  if (!isOrderingEnabled()) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center max-w-lg mx-auto">
+        <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-6">
+          <XCircle size={48} />
+        </div>
+        <h2 className="text-3xl font-serif text-gray-800 mb-4">Encomendas Temporariamente Indisponíveis</h2>
+        <p className="text-gray-600 mb-6 text-lg">
+          {siteConfig.businessSettings?.notAcceptingMessage || 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'}
+        </p>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 w-full">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={20} className="text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-700">
+              Pedimos desculpa pelo incómodo. Por favor, volte mais tarde ou contacte-nos para mais informações.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-4 flex-wrap justify-center">
+          <Link to="/" className="px-6 py-3 bg-gold-600 text-white rounded hover:bg-gold-500 transition-colors uppercase text-xs font-bold tracking-widest">
+            Voltar à Loja
+          </Link>
+          <a 
+            href={`tel:${siteConfig.contact.phone}`} 
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded hover:border-gold-500 transition-colors uppercase text-xs font-bold tracking-widest"
+          >
+            Contactar
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0 && step !== 'success') {
     return (

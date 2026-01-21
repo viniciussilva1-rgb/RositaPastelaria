@@ -19,6 +19,11 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
     email: "rositapastelariaofc@gmail.com",
     scheduleWeek: "08:00 - 19:00",
     scheduleWeekend: "09:00 - 13:00"
+  },
+  businessSettings: {
+    closedDay: 1, // Segunda-feira
+    isAcceptingOrders: true,
+    notAcceptingMessage: "De momento não estamos a aceitar encomendas. Voltaremos em breve!"
   }
 };
 

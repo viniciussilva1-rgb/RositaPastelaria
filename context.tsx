@@ -56,6 +56,9 @@ interface ShopContextType {
   updateOrder: (order: Order) => void;
   deleteOrder: (orderId: string) => void;
   getUnavailableDeliverySlots: (date: string) => string[];
+  isOrderingEnabled: () => boolean;
+  getClosedDayName: () => string;
+  isDateClosed: (date: Date) => boolean;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
@@ -327,6 +330,26 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setOrders(prev => prev.filter(o => o.id !== orderId));
   };
 
+  // Nomes dos dias da semana em português
+  const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+  // Verificar se as encomendas estão ativas
+  const isOrderingEnabled = (): boolean => {
+    return siteConfig.businessSettings?.isAcceptingOrders !== false;
+  };
+
+  // Obter o nome do dia de folga
+  const getClosedDayName = (): string => {
+    const closedDay = siteConfig.businessSettings?.closedDay ?? 0;
+    return dayNames[closedDay];
+  };
+
+  // Verificar se uma data é dia de folga
+  const isDateClosed = (date: Date): boolean => {
+    const closedDay = siteConfig.businessSettings?.closedDay ?? 0;
+    return date.getDay() === closedDay;
+  };
+
   return (
     <ShopContext.Provider value={{
       products, addProduct, updateProduct, deleteProduct,
@@ -336,7 +359,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
-      orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots
+      orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
+      isOrderingEnabled, getClosedDayName, isDateClosed
     }}>
       {children}
     </ShopContext.Provider>

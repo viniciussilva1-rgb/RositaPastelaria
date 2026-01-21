@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, MessageCircle, Mail, Phone, X, Eye, Package } from 'lucide-react';
+import { ShoppingCart, MessageCircle, Mail, Phone, X, Eye, Package, AlertCircle } from 'lucide-react';
 
 // Modal de Pedido de Orçamento
 interface QuoteModalProps {
@@ -95,10 +95,12 @@ const QuoteModal: React.FC<QuoteModalProps> = ({ product, isOpen, onClose }) => 
 };
 
 const Menu: React.FC = () => {
-  const { addToCart, products } = useShop();
+  const { addToCart, products, isOrderingEnabled, siteConfig } = useShop();
   const [filter, setFilter] = useState<string>('Todos');
   const [quoteModal, setQuoteModal] = useState<{ isOpen: boolean; product: any }>({ isOpen: false, product: null });
   const navigate = useNavigate();
+  
+  const orderingEnabled = isOrderingEnabled();
   
   const categories = ['Todos', ...Array.from(new Set(products.map(p => p.category)))];
   
@@ -125,6 +127,26 @@ const Menu: React.FC = () => {
   return (
     <div className="pt-32 pb-20 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Banner de Encomendas Pausadas */}
+        {!orderingEnabled && (
+          <div className="mb-8 animate-fade-in-up">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertCircle size={24} className="text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-800 text-lg mb-1">Encomendas Temporariamente Indisponíveis</h3>
+                <p className="text-amber-700">
+                  {siteConfig.businessSettings?.notAcceptingMessage || 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'}
+                </p>
+                <p className="text-sm text-amber-600 mt-2">
+                  Pode continuar a navegar pelos nossos produtos. Volte mais tarde para fazer a sua encomenda.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="text-center mb-16 animate-fade-in-up">
           <span className="text-gold-600 text-[0.65rem] font-bold uppercase tracking-[0.3em] mb-4 block">Pastelaria Artesanal</span>
@@ -183,24 +205,30 @@ const Menu: React.FC = () => {
                     >
                       <Eye size={14} /> Ver Detalhes
                     </Link>
-                    <button 
-                      onClick={() => handleProductAction(product)}
-                      className={`w-full py-3 uppercase text-[10px] font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
-                        product.category === 'Especiais' 
-                          ? 'bg-gold-500 text-white hover:bg-gold-600' 
-                          : product.category === 'Pack Salgados'
-                          ? 'bg-orange-500 text-white hover:bg-orange-600'
-                          : 'bg-gray-900 text-white hover:bg-gold-600'
-                      }`}
-                    >
-                      {product.category === 'Especiais' ? (
-                        <><MessageCircle size={14} /> Pedir Orçamento</>
-                      ) : product.category === 'Pack Salgados' ? (
+                    {orderingEnabled ? (
+                      <button 
+                        onClick={() => handleProductAction(product)}
+                        className={`w-full py-3 uppercase text-[10px] font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
+                          product.category === 'Especiais' 
+                            ? 'bg-gold-500 text-white hover:bg-gold-600' 
+                            : product.category === 'Pack Salgados'
+                            ? 'bg-orange-500 text-white hover:bg-orange-600'
+                            : 'bg-gray-900 text-white hover:bg-gold-600'
+                        }`}
+                      >
+                        {product.category === 'Especiais' ? (
+                          <><MessageCircle size={14} /> Pedir Orçamento</>
+                        ) : product.category === 'Pack Salgados' ? (
                         <><Package size={14} /> Escolher Unidades</>
                       ) : (
                         <><ShoppingCart size={14} /> Adicionar ao Carrinho</>
                       )}
-                    </button>
+                      </button>
+                    ) : (
+                      <div className="w-full py-3 bg-gray-400 text-white uppercase text-[10px] font-bold tracking-widest flex items-center justify-center gap-2 cursor-not-allowed">
+                        <AlertCircle size={14} /> Encomendas Indisponíveis
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

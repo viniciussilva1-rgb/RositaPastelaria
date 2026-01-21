@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 
 // Modal de Pedido de Orçamento
@@ -135,7 +135,9 @@ const getRecommendations = (currentProduct: Product, allProducts: Product[]): Pr
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, addToCart } = useShop();
+  const { products, addToCart, isOrderingEnabled, siteConfig } = useShop();
+  
+  const orderingEnabled = isOrderingEnabled();
   
   const [quoteModal, setQuoteModal] = useState<{ isOpen: boolean; product: any }>({ isOpen: false, product: null });
   const [addedToCart, setAddedToCart] = useState(false);
@@ -843,26 +845,45 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
             
+            {/* Banner de Encomendas Pausadas */}
+            {!orderingEnabled && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800 text-sm">Encomendas Temporariamente Indisponíveis</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    {siteConfig.businessSettings?.notAcceptingMessage || 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <button
-                onClick={handleProductAction}
-                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg transition-all ${
-                  addedToCart
-                    ? 'bg-green-500 text-white'
-                    : product.category === 'Especiais'
-                    ? 'bg-gold-600 text-white hover:bg-gold-700'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
-                }`}
-              >
-                {addedToCart ? (
-                  <>✓ Adicionado!</>
-                ) : product.category === 'Especiais' ? (
-                  <><MessageCircle size={22} /> Pedir Orçamento</>
-                ) : (
-                  <><ShoppingCart size={22} /> Adicionar ao Carrinho</>
-                )}
-              </button>
+              {orderingEnabled ? (
+                <button
+                  onClick={handleProductAction}
+                  className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg transition-all ${
+                    addedToCart
+                      ? 'bg-green-500 text-white'
+                      : product.category === 'Especiais'
+                      ? 'bg-gold-600 text-white hover:bg-gold-700'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {addedToCart ? (
+                    <>✓ Adicionado!</>
+                  ) : product.category === 'Especiais' ? (
+                    <><MessageCircle size={22} /> Pedir Orçamento</>
+                  ) : (
+                    <><ShoppingCart size={22} /> Adicionar ao Carrinho</>
+                  )}
+                </button>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg bg-gray-300 text-gray-500 cursor-not-allowed">
+                  <AlertCircle size={22} /> Encomendas Indisponíveis
+                </div>
+              )}
               
               <button
                 onClick={handleShare}

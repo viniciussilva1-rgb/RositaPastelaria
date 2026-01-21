@@ -69,6 +69,12 @@ export interface SiteConfig {
     scheduleWeek: string;
     scheduleWeekend: string;
   };
+  // Configurações de funcionamento
+  businessSettings: {
+    closedDay: number; // 0 = Domingo, 1 = Segunda, etc.
+    isAcceptingOrders: boolean;
+    notAcceptingMessage: string;
+  };
 }
 
 // Feedback/Avaliações dos Clientes

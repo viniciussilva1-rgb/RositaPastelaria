@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote, X, Send, CheckCircle, MessageCircle, Mail, Phone } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote, X, Send, CheckCircle, MessageCircle, Mail, Phone, AlertCircle } from 'lucide-react';
 import { useShop } from '../context';
 import { Testimonial } from '../types';
 
@@ -96,7 +96,9 @@ const QuoteModal: React.FC<QuoteModalProps> = ({ product, isOpen, onClose }) => 
 };
 
 const Home: React.FC = () => {
-  const { addToCart, products, siteConfig, testimonials, addTestimonial } = useShop();
+  const { addToCart, products, siteConfig, testimonials, addTestimonial, isOrderingEnabled } = useShop();
+  
+  const orderingEnabled = isOrderingEnabled();
   
   // Destaques: Apenas 4 produtos para manter clean
   const showcaseProducts = products.slice(0, 4);
@@ -205,6 +207,25 @@ const Home: React.FC = () => {
         </div>
       </div>
 
+      {/* Banner de Encomendas Pausadas */}
+      {!orderingEnabled && (
+        <div className="bg-amber-50 border-b border-amber-200 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center gap-4 text-center">
+              <div className="flex-shrink-0 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertCircle size={24} className="text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-800 text-lg">Encomendas Temporariamente Indisponíveis</h3>
+                <p className="text-amber-700 text-sm">
+                  {siteConfig.businessSettings?.notAcceptingMessage || 'De momento não estamos a aceitar encomendas. Voltaremos em breve!'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* A Nossa Assinatura (Trust Section) */}
       <div className="py-24 bg-cream-50 reveal">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -268,16 +289,22 @@ const Home: React.FC = () => {
                      >
                         Ver Detalhes
                      </Link>
-                     <button 
-                        onClick={(e) => { e.preventDefault(); handleProductAction(product); }}
-                        className={`px-6 py-3 uppercase text-xs font-bold tracking-widest transition-colors ${
-                          product.category === 'Especiais'
-                            ? 'bg-gold-500 text-white hover:bg-gold-600'
-                            : 'bg-gray-900 text-white hover:bg-gold-600'
-                        }`}
-                     >
-                        {product.category === 'Especiais' ? 'Pedir Orçamento' : 'Adicionar'}
-                     </button>
+                     {orderingEnabled ? (
+                       <button 
+                          onClick={(e) => { e.preventDefault(); handleProductAction(product); }}
+                          className={`px-6 py-3 uppercase text-xs font-bold tracking-widest transition-colors ${
+                            product.category === 'Especiais'
+                              ? 'bg-gold-500 text-white hover:bg-gold-600'
+                              : 'bg-gray-900 text-white hover:bg-gold-600'
+                          }`}
+                       >
+                          {product.category === 'Especiais' ? 'Pedir Orçamento' : 'Adicionar'}
+                       </button>
+                     ) : (
+                       <div className="px-6 py-3 bg-gray-400 text-white uppercase text-xs font-bold tracking-widest cursor-not-allowed">
+                         Indisponível
+                       </div>
+                     )}
                   </div>
                   <div className="absolute top-4 left-4">
                      <span className="bg-white/90 backdrop-blur-sm text-gray-900 text-[10px] font-bold px-3 py-1 uppercase tracking-wider">
