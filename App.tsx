@@ -18,7 +18,65 @@ import MaintenanceMode from './components/MaintenanceMode';
 const MAINTENANCE_MODE = true;
 
 const Footer = () => {
-  const { siteConfig } = useShop();
+  const { siteConfig, getClosedDayName } = useShop();
+
+  // Gerar horário dinâmico baseado no dia de folga
+  const getScheduleDisplay = () => {
+    const closedDay = siteConfig.businessSettings?.closedDay ?? 1;
+    const closedDayName = getClosedDayName();
+    
+    // Nomes abreviados dos dias
+    const dayAbbrev: Record<number, string> = {
+      0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sáb'
+    };
+    
+    // Se o dia fechado for domingo (0), mostrar Seg-Sáb normal
+    if (closedDay === 0) {
+      return {
+        weekDays: 'Seg - Sáb',
+        weekendDay: 'Domingo',
+        weekSchedule: siteConfig.contact.scheduleWeek,
+        weekendSchedule: 'Fechado'
+      };
+    }
+    
+    // Se o dia fechado for sábado (6)
+    if (closedDay === 6) {
+      return {
+        weekDays: 'Seg - Sex',
+        weekendDay: 'Sábado',
+        weekSchedule: siteConfig.contact.scheduleWeek,
+        weekendSchedule: 'Fechado',
+        extraDay: 'Domingo',
+        extraSchedule: siteConfig.contact.scheduleWeekend
+      };
+    }
+    
+    // Se o dia fechado for segunda (1)
+    if (closedDay === 1) {
+      return {
+        weekDays: 'Ter - Sáb',
+        weekendDay: 'Segunda',
+        weekSchedule: siteConfig.contact.scheduleWeek,
+        weekendSchedule: 'Fechado',
+        extraDay: 'Domingo',
+        extraSchedule: siteConfig.contact.scheduleWeekend
+      };
+    }
+    
+    // Para outros dias no meio da semana
+    const closedAbbrev = dayAbbrev[closedDay];
+    return {
+      weekDays: `Dias úteis (exceto ${closedAbbrev})`,
+      weekendDay: closedDayName,
+      weekSchedule: siteConfig.contact.scheduleWeek,
+      weekendSchedule: 'Fechado',
+      extraDay: 'Domingo',
+      extraSchedule: siteConfig.contact.scheduleWeekend
+    };
+  };
+
+  const schedule = getScheduleDisplay();
 
   return (
     <footer className="bg-gray-900 text-white pt-16 pb-8">
@@ -42,8 +100,11 @@ const Footer = () => {
           <div>
             <h4 className="text-gold-500 font-bold uppercase tracking-widest text-xs mb-6">Levantamentos</h4>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex justify-between"><span>Seg - Sáb</span> <span>{siteConfig.contact.scheduleWeek}</span></li>
-              <li className="flex justify-between"><span>Domingo</span> <span>{siteConfig.contact.scheduleWeekend}</span></li>
+              <li className="flex justify-between"><span>{schedule.weekDays}</span> <span>{schedule.weekSchedule}</span></li>
+              <li className="flex justify-between"><span>{schedule.weekendDay}</span> <span className={schedule.weekendSchedule === 'Fechado' ? 'text-red-400' : ''}>{schedule.weekendSchedule}</span></li>
+              {schedule.extraDay && (
+                <li className="flex justify-between"><span>{schedule.extraDay}</span> <span>{schedule.extraSchedule}</span></li>
+              )}
             </ul>
           </div>
         </div>
