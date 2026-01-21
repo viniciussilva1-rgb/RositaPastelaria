@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS, BLOG_POSTS } from './constants';
+import { db, COLLECTIONS, firestoreHelpers } from './services/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 // Categorias iniciais
 const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais'];
@@ -59,92 +61,165 @@ interface ShopContextType {
   isOrderingEnabled: () => boolean;
   getClosedDayName: () => string;
   isDateClosed: (date: Date) => boolean;
+  
+  isLoading: boolean;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Products State (Simulating Database)
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('rosita_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Products State
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
   // Categories State
-  const [categories, setCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem('rosita_categories');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
+  const [categories, setCategories] = useState<string[]>(INITIAL_CATEGORIES);
 
   // Site Config State
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(() => {
-    const saved = localStorage.getItem('rosita_site_config');
-    return saved ? JSON.parse(saved) : INITIAL_SITE_CONFIG;
-  });
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(INITIAL_SITE_CONFIG);
 
   // Testimonials State
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
-    const saved = localStorage.getItem('rosita_testimonials');
-    return saved ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
-  });
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
 
   // Blog Posts State
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
-    const saved = localStorage.getItem('rosita_blog_posts');
-    return saved ? JSON.parse(saved) : BLOG_POSTS;
-  });
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(BLOG_POSTS);
 
-  // Cart State
+  // Cart State (local only - per user)
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('rosita_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // User State
+  // User State (local only)
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('rosita_user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Orders State (Mock Database)
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('rosita_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Orders State
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  // Persistence Effects
+  // Initialize data from Firebase and set up real-time listeners
   useEffect(() => {
-    localStorage.setItem('rosita_products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('rosita_categories', JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('rosita_site_config', JSON.stringify(siteConfig));
-    } catch (error) {
-      console.error('Erro ao guardar configuração do site no localStorage:', error);
-      // Se o erro for de quota excedida, alertar o usuário
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        alert('Erro: O armazenamento local está cheio. As imagens podem ser muito grandes. Use URLs externas para imagens.');
+    const initializeFirebase = async () => {
+      try {
+        // Check if data exists in Firebase, if not, initialize with defaults
+        const existingProducts = await firestoreHelpers.getAll<Product>(COLLECTIONS.PRODUCTS);
+        
+        if (existingProducts.length === 0) {
+          // First time setup - upload initial data to Firebase
+          console.log('Initializing Firebase with default data...');
+          
+          // Upload initial products
+          for (const product of INITIAL_PRODUCTS) {
+            await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
+          }
+          
+          // Upload initial categories
+          await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: INITIAL_CATEGORIES });
+          
+          // Upload initial site config
+          await setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), INITIAL_SITE_CONFIG);
+          
+          // Upload initial testimonials
+          for (const testimonial of INITIAL_TESTIMONIALS) {
+            await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
+          }
+          
+          // Upload initial blog posts
+          for (const post of BLOG_POSTS) {
+            await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post);
+          }
+          
+          console.log('Firebase initialized with default data!');
+        }
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        // Fallback to local data if Firebase fails
+        setIsLoading(false);
       }
-    }
-  }, [siteConfig]);
+    };
 
+    initializeFirebase();
+  }, []);
+
+  // Real-time listeners for Firebase data
   useEffect(() => {
-    localStorage.setItem('rosita_testimonials', JSON.stringify(testimonials));
-  }, [testimonials]);
+    if (!isInitialized) return;
 
-  useEffect(() => {
-    localStorage.setItem('rosita_blog_posts', JSON.stringify(blogPosts));
-  }, [blogPosts]);
+    const unsubscribes: (() => void)[] = [];
 
+    // Products listener
+    const unsubProducts = firestoreHelpers.subscribe<Product>(COLLECTIONS.PRODUCTS, (data) => {
+      if (data.length > 0) {
+        setProducts(data);
+      }
+    });
+    unsubscribes.push(unsubProducts);
+
+    // Categories listener
+    const unsubCategories = onSnapshot(doc(db, COLLECTIONS.CATEGORIES, 'main'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.list) {
+          setCategories(data.list);
+        }
+      }
+    });
+    unsubscribes.push(unsubCategories);
+
+    // Site Config listener
+    const unsubSiteConfig = onSnapshot(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), (snapshot) => {
+      if (snapshot.exists()) {
+        setSiteConfig(snapshot.data() as SiteConfig);
+      }
+    });
+    unsubscribes.push(unsubSiteConfig);
+
+    // Testimonials listener
+    const unsubTestimonials = firestoreHelpers.subscribe<Testimonial>(COLLECTIONS.TESTIMONIALS, (data) => {
+      if (data.length > 0) {
+        setTestimonials(data);
+      }
+    });
+    unsubscribes.push(unsubTestimonials);
+
+    // Blog Posts listener
+    const unsubBlogPosts = firestoreHelpers.subscribe<BlogPost>(COLLECTIONS.BLOG_POSTS, (data) => {
+      if (data.length > 0) {
+        setBlogPosts(data);
+      }
+    });
+    unsubscribes.push(unsubBlogPosts);
+
+    // Orders listener
+    const unsubOrders = firestoreHelpers.subscribe<Order>(COLLECTIONS.ORDERS, (data) => {
+      setOrders(data.sort((a, b) => {
+        // Sort by date descending
+        return new Date(b.date.split('/').reverse().join('-')).getTime() - 
+               new Date(a.date.split('/').reverse().join('-')).getTime();
+      }));
+    });
+    unsubscribes.push(unsubOrders);
+
+    setIsLoading(false);
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [isInitialized]);
+
+  // Local persistence for cart
   useEffect(() => {
     localStorage.setItem('rosita_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Local persistence for user
   useEffect(() => {
     if (user) {
       localStorage.setItem('rosita_user', JSON.stringify(user));
@@ -153,72 +228,81 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem('rosita_orders', JSON.stringify(orders));
-  }, [orders]);
-
   // Category Actions
-  const addCategory = (category: string) => {
+  const addCategory = useCallback(async (category: string) => {
     if (!categories.includes(category)) {
-      setCategories(prev => [...prev, category]);
+      const newCategories = [...categories, category];
+      setCategories(newCategories);
+      await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: newCategories });
     }
-  };
+  }, [categories]);
 
-  const updateCategory = (oldName: string, newName: string) => {
-    setCategories(prev => prev.map(c => c === oldName ? newName : c));
-    // Atualizar produtos com a categoria antiga
-    setProducts(prev => prev.map(p => p.category === oldName ? { ...p, category: newName } : p));
-  };
+  const updateCategory = useCallback(async (oldName: string, newName: string) => {
+    const newCategories = categories.map(c => c === oldName ? newName : c);
+    setCategories(newCategories);
+    await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: newCategories });
+    
+    // Update products with the old category
+    const updatedProducts = products.map(p => 
+      p.category === oldName ? { ...p, category: newName } : p
+    );
+    for (const product of updatedProducts.filter(p => p.category === newName)) {
+      await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
+    }
+  }, [categories, products]);
 
-  const deleteCategory = (category: string) => {
-    setCategories(prev => prev.filter(c => c !== category));
-  };
+  const deleteCategory = useCallback(async (category: string) => {
+    const newCategories = categories.filter(c => c !== category);
+    setCategories(newCategories);
+    await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: newCategories });
+  }, [categories]);
 
   // Product Actions
-  const addProduct = (product: Product) => {
-    setProducts(prev => [...prev, product]);
-  };
+  const addProduct = useCallback(async (product: Product) => {
+    await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
+  }, []);
 
-  const updateProduct = (updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-  };
+  const updateProduct = useCallback(async (updatedProduct: Product) => {
+    await firestoreHelpers.set(COLLECTIONS.PRODUCTS, updatedProduct);
+  }, []);
 
-  const deleteProduct = (productId: string) => {
-    setProducts(prev => prev.filter(p => p.id !== productId));
-  };
+  const deleteProduct = useCallback(async (productId: string) => {
+    await firestoreHelpers.delete(COLLECTIONS.PRODUCTS, productId);
+  }, []);
 
   // Site Config Actions
-  const updateSiteConfig = (newConfig: SiteConfig) => {
+  const updateSiteConfig = useCallback(async (newConfig: SiteConfig) => {
     setSiteConfig(newConfig);
-  };
+    await setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), newConfig);
+  }, []);
 
   // Testimonial Actions
-  const addTestimonial = (testimonial: Testimonial) => {
-    setTestimonials(prev => [...prev, testimonial]);
-  };
+  const addTestimonial = useCallback(async (testimonial: Testimonial) => {
+    await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
+  }, []);
 
-  const updateTestimonial = (updatedTestimonial: Testimonial) => {
-    setTestimonials(prev => prev.map(t => t.id === updatedTestimonial.id ? updatedTestimonial : t));
-  };
+  const updateTestimonial = useCallback(async (updatedTestimonial: Testimonial) => {
+    await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, updatedTestimonial);
+  }, []);
 
-  const deleteTestimonial = (id: string) => {
-    setTestimonials(prev => prev.filter(t => t.id !== id));
-  };
+  const deleteTestimonial = useCallback(async (id: string) => {
+    await firestoreHelpers.delete(COLLECTIONS.TESTIMONIALS, id);
+  }, []);
 
   // Blog Post Actions
-  const addBlogPost = (post: BlogPost) => {
-    setBlogPosts(prev => [post, ...prev]);
-  };
+  const addBlogPost = useCallback(async (post: BlogPost) => {
+    await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post);
+  }, []);
 
-  const updateBlogPost = (updatedPost: BlogPost) => {
-    setBlogPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
-  };
+  const updateBlogPost = useCallback(async (updatedPost: BlogPost) => {
+    await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, updatedPost);
+  }, []);
 
-  const deleteBlogPost = (id: string) => {
-    setBlogPosts(prev => prev.filter(p => p.id !== id));
-  };
+  const deleteBlogPost = useCallback(async (id: string) => {
+    await firestoreHelpers.delete(COLLECTIONS.BLOG_POSTS, id);
+  }, []);
 
-  // Cart Actions
+  // Cart Actions (local only)
   const addToCart = (product: Product) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -251,7 +335,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Auth Actions
   const login = () => {
-    // Mock User Login
     setUser({
       id: 'u12345',
       name: 'Maria Silva',
@@ -262,7 +345,6 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const adminLogin = (email: string, password: string): boolean => {
-    // Credenciais do administrador
     const ADMIN_EMAIL = 'rositapastelariaofc@gmail.com';
     const ADMIN_PASSWORD = 'RositapastelariaRQ2025';
     
@@ -283,18 +365,17 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
-  // Get unavailable delivery slots for a specific date
-  // Returns time slots that are already booked for HOME DELIVERY
+  // Order Actions
   const getUnavailableDeliverySlots = (date: string): string[] => {
     return orders
       .filter(order => 
         order.deliveryDate === date && 
-        order.deliveryType === 'delivery' // Only block if it's a delivery
+        order.deliveryType === 'delivery'
       )
       .map(order => order.deliveryTime);
   };
 
-  const placeOrder = (paymentMethod: string, deliveryInfo: DeliveryInfo) => {
+  const placeOrder = useCallback(async (paymentMethod: string, deliveryInfo: DeliveryInfo) => {
     if (cart.length === 0) return;
     
     const deliveryFee = deliveryInfo.deliveryFee || 0;
@@ -317,34 +398,31 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       nif: deliveryInfo.nif
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    await firestoreHelpers.set(COLLECTIONS.ORDERS, newOrder);
     clearCart();
     console.log("Order placed:", newOrder);
-  };
+  }, [cart, cartTotal]);
 
-  const updateOrder = (updatedOrder: Order) => {
-    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-  };
+  const updateOrder = useCallback(async (updatedOrder: Order) => {
+    await firestoreHelpers.set(COLLECTIONS.ORDERS, updatedOrder);
+  }, []);
 
-  const deleteOrder = (orderId: string) => {
-    setOrders(prev => prev.filter(o => o.id !== orderId));
-  };
+  const deleteOrder = useCallback(async (orderId: string) => {
+    await firestoreHelpers.delete(COLLECTIONS.ORDERS, orderId);
+  }, []);
 
-  // Nomes dos dias da semana em português
+  // Business Settings helpers
   const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
-  // Verificar se as encomendas estão ativas
   const isOrderingEnabled = (): boolean => {
     return siteConfig.businessSettings?.isAcceptingOrders !== false;
   };
 
-  // Obter o nome do dia de folga
   const getClosedDayName = (): string => {
     const closedDay = siteConfig.businessSettings?.closedDay ?? 0;
     return dayNames[closedDay];
   };
 
-  // Verificar se uma data é dia de folga
   const isDateClosed = (date: Date): boolean => {
     const closedDay = siteConfig.businessSettings?.closedDay ?? 0;
     return date.getDay() === closedDay;
@@ -360,7 +438,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, login, adminLogin, logout,
       orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
-      isOrderingEnabled, getClosedDayName, isDateClosed
+      isOrderingEnabled, getClosedDayName, isDateClosed,
+      isLoading
     }}>
       {children}
     </ShopContext.Provider>
