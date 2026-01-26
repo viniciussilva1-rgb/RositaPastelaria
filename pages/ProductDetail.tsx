@@ -246,6 +246,7 @@ const ProductDetail: React.FC = () => {
         
         const packProduct = {
           ...product,
+          id: `${product.id}-${Date.now()}`,
           name: `${product.name} (${packQuantity} un.) - ${deliveryLabel}`,
           description: `Sabores: ${flavorsDescription} | Preço: €${pricePerUnit.toFixed(2)}/un`,
           price: totalPackPrice
@@ -257,9 +258,7 @@ const ProductDetail: React.FC = () => {
         setPackQuantity(12);
         setPackQuantityInput('12');
       } else {
-        for (let i = 0; i < quantity; i++) {
-          addToCart(product);
-        }
+        addToCart(product, quantity);
       }
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);

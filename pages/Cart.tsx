@@ -389,7 +389,13 @@ const Cart: React.FC = () => {
                     />
                     <div className="ml-6 flex-grow">
                       <h3 className="text-lg font-serif text-gray-800">{item.name}</h3>
-                      <p className="text-gray-500 text-sm">€{item.price.toFixed(2)} {item.category === 'Bolos de Aniversário' ? '/ Kg' : '/ un'}</p>
+                      <p className="text-gray-500 text-xs mt-1 mb-2 line-clamp-2 italic">{item.description}</p>
+                      <p className="text-gold-600 text-sm font-bold">
+                        €{item.price.toFixed(2)} 
+                        <span className="text-gray-400 font-normal ml-1">
+                          {item.category === 'Bolos de Aniversário' ? '/ Kg' : '/ un'}
+                        </span>
+                      </p>
                     </div>
                     <div className="flex items-center space-x-3">
                       <button onClick={() => updateQuantity(item.id, -1)} className="p-1 text-gray-400 hover:text-gold-600">
