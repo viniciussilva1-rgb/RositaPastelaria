@@ -128,41 +128,44 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
-        // Check if data exists in Firebase, if not, initialize with defaults
-        const existingProducts = await firestoreHelpers.getAll<Product>(COLLECTIONS.PRODUCTS);
-        
-        if (existingProducts.length === 0) {
-          // First time setup - upload initial data to Firebase
-          console.log('Initializing Firebase with default data...');
-          
-          // Upload initial products
-          for (const product of INITIAL_PRODUCTS) {
-            await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
+        // Check if DB is already initialized by checking siteConfig
+        const configSnapshot = await onSnapshot(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), async (snapshot) => {
+          if (!snapshot.exists()) {
+            console.log('Firebase empty or first run, initializing with default data...');
+            
+            // Upload initial products
+            for (const product of INITIAL_PRODUCTS) {
+              await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
+            }
+            
+            // Upload initial categories
+            await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: INITIAL_CATEGORIES });
+            
+            // Upload initial site config
+            await setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), INITIAL_SITE_CONFIG);
+            
+            // Upload initial testimonials
+            for (const testimonial of INITIAL_TESTIMONIALS) {
+              await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
+            }
+            
+            // Upload initial blog posts
+            for (const post of BLOG_POSTS) {
+              await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post);
+            }
+            
+            console.log('Firebase initialized with default data!');
           }
-          
-          // Upload initial categories
-          await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: INITIAL_CATEGORIES });
-          
-          // Upload initial site config
-          await setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), INITIAL_SITE_CONFIG);
-          
-          // Upload initial testimonials
-          for (const testimonial of INITIAL_TESTIMONIALS) {
-            await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
-          }
-          
-          // Upload initial blog posts
-          for (const post of BLOG_POSTS) {
-            await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post);
-          }
-          
-          console.log('Firebase initialized with default data!');
-        }
-        
-        setIsInitialized(true);
+          setIsInitialized(true);
+        }, (err) => {
+          console.error('Error checking initialization:', err);
+          setIsInitialized(true); // Proceed anyway to show local data if FB fails
+        });
+
+        return () => configSnapshot();
       } catch (error) {
         console.error('Error initializing Firebase:', error);
-        // Fallback to local data if Firebase fails
+        setIsInitialized(true);
         setIsLoading(false);
       }
     };
@@ -178,9 +181,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Products listener
     const unsubProducts = firestoreHelpers.subscribe<Product>(COLLECTIONS.PRODUCTS, (data) => {
-      if (data.length > 0) {
-        setProducts(data);
-      }
+      setProducts(data);
     });
     unsubscribes.push(unsubProducts);
 
@@ -205,17 +206,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Testimonials listener
     const unsubTestimonials = firestoreHelpers.subscribe<Testimonial>(COLLECTIONS.TESTIMONIALS, (data) => {
-      if (data.length > 0) {
-        setTestimonials(data);
-      }
+      setTestimonials(data);
     });
     unsubscribes.push(unsubTestimonials);
 
     // Blog Posts listener
     const unsubBlogPosts = firestoreHelpers.subscribe<BlogPost>(COLLECTIONS.BLOG_POSTS, (data) => {
-      if (data.length > 0) {
-        setBlogPosts(data);
-      }
+      setBlogPosts(data);
     });
     unsubscribes.push(unsubBlogPosts);
 
@@ -229,11 +226,15 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     unsubscribes.push(unsubOrders);
 
-    setIsLoading(false);
+    // Set loading to false after a small delay to allow first snapshot
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
 
     // Cleanup listeners on unmount
     return () => {
       unsubscribes.forEach(unsub => unsub());
+      clearTimeout(timer);
     };
   }, [isInitialized]);
 
