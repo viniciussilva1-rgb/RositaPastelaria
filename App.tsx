@@ -36,7 +36,7 @@ const Footer = () => {
         weekDays: 'Seg - Sáb',
         weekendDay: 'Domingo',
         weekSchedule: siteConfig.contact.scheduleWeek,
-        weekendSchedule: 'Fechado'
+        weekendSchedule: 'Folga'
       };
     }
     
@@ -46,7 +46,7 @@ const Footer = () => {
         weekDays: 'Seg - Sex',
         weekendDay: 'Sábado',
         weekSchedule: siteConfig.contact.scheduleWeek,
-        weekendSchedule: 'Fechado',
+        weekendSchedule: 'Folga',
         extraDay: 'Domingo',
         extraSchedule: siteConfig.contact.scheduleWeekend
       };
@@ -56,11 +56,11 @@ const Footer = () => {
     if (closedDay === 1) {
       return {
         weekDays: 'Ter - Sáb',
-        weekendDay: 'Segunda',
         weekSchedule: siteConfig.contact.scheduleWeek,
-        weekendSchedule: 'Fechado',
-        extraDay: 'Domingo',
-        extraSchedule: siteConfig.contact.scheduleWeekend
+        weekendDay: 'Domingo',
+        weekendSchedule: siteConfig.contact.scheduleWeekend,
+        extraDay: 'Segunda',
+        extraSchedule: 'Folga'
       };
     }
     
@@ -70,7 +70,7 @@ const Footer = () => {
       weekDays: `Dias úteis (exceto ${closedAbbrev})`,
       weekendDay: closedDayName,
       weekSchedule: siteConfig.contact.scheduleWeek,
-      weekendSchedule: 'Fechado',
+      weekendSchedule: 'Folga',
       extraDay: 'Domingo',
       extraSchedule: siteConfig.contact.scheduleWeekend
     };
@@ -100,10 +100,23 @@ const Footer = () => {
           <div>
             <h4 className="text-gold-500 font-bold uppercase tracking-widest text-xs mb-6">Levantamentos</h4>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex justify-between"><span>{schedule.weekDays}</span> <span>{schedule.weekSchedule}</span></li>
-              <li className="flex justify-between"><span>{schedule.weekendDay}</span> <span className={schedule.weekendSchedule === 'Fechado' ? 'text-red-400' : ''}>{schedule.weekendSchedule}</span></li>
+              <li className="flex justify-between">
+                <span>{schedule.weekDays}</span> 
+                <span>{schedule.weekSchedule}</span>
+              </li>
+              <li className="flex justify-between">
+                <span>{schedule.weekendDay}</span> 
+                <span className={['Fechado', 'Folga'].includes(schedule.weekendSchedule) ? 'text-red-400 font-bold' : ''}>
+                  {schedule.weekendSchedule}
+                </span>
+              </li>
               {schedule.extraDay && (
-                <li className="flex justify-between"><span>{schedule.extraDay}</span> <span>{schedule.extraSchedule}</span></li>
+                <li className="flex justify-between">
+                  <span>{schedule.extraDay}</span> 
+                  <span className={['Fechado', 'Folga'].includes(schedule.extraSchedule || '') ? 'text-red-400 font-bold' : ''}>
+                    {schedule.extraSchedule}
+                  </span>
+                </li>
               )}
             </ul>
           </div>
