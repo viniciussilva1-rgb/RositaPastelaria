@@ -5,7 +5,7 @@ import { db, COLLECTIONS, firestoreHelpers, authHelpers, ADMIN_EMAIL, FirebaseUs
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 // Categorias iniciais
-const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Salgados Congelados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais'];
+const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Salgados Congelados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais', 'Pack Salgados'];
 
 interface DeliveryInfo {
   type: DeliveryType;
