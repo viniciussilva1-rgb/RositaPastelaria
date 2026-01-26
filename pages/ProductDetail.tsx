@@ -390,6 +390,38 @@ const ProductDetail: React.FC = () => {
               </p>
             </div>
             
+            {/* Benefícios & Diferenciais */}
+            <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-gold-50 to-orange-50 border border-gold-200 rounded-lg p-4 flex gap-3">
+                <span className="text-2xl flex-shrink-0">👨‍🍳</span>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Receita Artesanal</p>
+                  <p className="text-xs text-gray-600">Feito à mão com ingredientes premium</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+                <span className="text-2xl flex-shrink-0">✨</span>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Frescura Garantida</p>
+                  <p className="text-xs text-gray-600">Produzido diariamente</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 flex gap-3">
+                <span className="text-2xl flex-shrink-0">🎁</span>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Qualidade Premium</p>
+                  <p className="text-xs text-gray-600">Seleção de ingredientes especiais</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-lg p-4 flex gap-3">
+                <span className="text-2xl flex-shrink-0">💝</span>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Apresentação Cuidada</p>
+                  <p className="text-xs text-gray-600">Embalagem elegante</p>
+                </div>
+              </div>
+            </div>
+            
             {/* Info adicional baseada na categoria */}
             {product.category === 'Bolos de Aniversário' && (
               <div className="bg-gold-50 border border-gold-200 rounded-xl p-4 mb-6">
@@ -970,39 +1002,64 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
             
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            {/* Action Buttons - Seção Destacada para Conversão */}
+            <div className="space-y-4 mb-6">
+              {/* CTA Principal com Destaque Visual */}
               {orderingEnabled ? (
                 <button
                   onClick={handleProductAction}
-                  className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg transition-all ${
+                  className={`w-full flex items-center justify-center gap-3 py-5 px-6 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-2xl ${
                     addedToCart
-                      ? 'bg-green-500 text-white'
+                      ? 'bg-gradient-to-r from-green-400 to-green-600 text-white'
                       : product.category === 'Especiais'
-                      ? 'bg-gold-600 text-white hover:bg-gold-700'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                      ? 'bg-gradient-to-r from-gold-500 to-gold-700 text-white hover:from-gold-600 hover:to-gold-800'
+                      : 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700'
                   }`}
                 >
                   {addedToCart ? (
-                    <>✓ Adicionado!</>
+                    <>
+                      <span className="text-2xl animate-bounce">✓</span>
+                      Adicionado ao Carrinho!
+                    </>
                   ) : product.category === 'Especiais' ? (
-                    <><MessageCircle size={22} /> Pedir Orçamento</>
+                    <>
+                      <MessageCircle size={24} />
+                      Pedir Orçamento
+                    </>
                   ) : (
-                    <><ShoppingCart size={22} /> Adicionar ao Carrinho</>
+                    <>
+                      <ShoppingCart size={24} />
+                      Adicionar ao Carrinho
+                    </>
                   )}
                 </button>
               ) : (
-                <div className="flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-lg bg-gray-300 text-gray-500 cursor-not-allowed">
-                  <AlertCircle size={22} /> Encomendas Indisponíveis
+                <div className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-bold text-lg bg-gray-300 text-gray-500 cursor-not-allowed shadow-md">
+                  <AlertCircle size={24} />
+                  Encomendas Indisponíveis
                 </div>
               )}
               
+              {/* Submessagens de Confiança */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                  <p className="text-green-700 text-xs font-bold">✓ Fresco Garantido</p>
+                  <p className="text-green-600 text-[11px] mt-1">Feito à mão diariamente</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                  <p className="text-blue-700 text-xs font-bold">🚚 Entrega Rápida</p>
+                  <p className="text-blue-600 text-[11px] mt-1">24-48h em Lisboa</p>
+                </div>
+              </div>
+              
+              {/* Botão de Compartilhar */}
               <button
                 onClick={handleShare}
-                className="px-6 py-4 border-2 border-gray-200 rounded-xl text-gray-600 hover:border-gold-400 hover:text-gold-600 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-3 px-6 border-2 border-gray-200 rounded-xl text-gray-600 hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-all font-medium"
                 title="Partilhar"
               >
-                <Share2 size={22} />
+                <Share2 size={18} />
+                Partilhar este Produto
               </button>
             </div>
             
@@ -1079,6 +1136,76 @@ const ProductDetail: React.FC = () => {
               Voltar ao menu completo
             </Link>
           </div>
+        </div>
+
+        {/* Depoimentos de Clientes */}
+        {testimonials.length > 0 && (
+          <div className="border-t border-gray-100 pt-16 mb-20">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-serif text-gray-900 mb-4">
+                O que os Clientes Dizem
+              </h2>
+              <p className="text-gray-500 max-w-2xl mx-auto">
+                Confira as avaliações de quem já experimentou os nossos produtos.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.slice(0, 3).map((testimonial) => (
+                <div 
+                  key={testimonial.id}
+                  className="bg-gradient-to-br from-gold-50 to-cream-50 border border-gold-200 rounded-xl p-6 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <img 
+                      src={testimonial.avatar} 
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                      <div className="flex gap-1">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <span key={i} className="text-gold-500 text-sm">★</span>
+                        ))}
+                        {[...Array(5 - testimonial.rating)].map((_, i) => (
+                          <span key={i} className="text-gray-300 text-sm">★</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm italic mb-3">
+                    "{testimonial.text}"
+                  </p>
+                  <div className="flex justify-between items-end">
+                    <p className="text-xs text-gray-500">
+                      {testimonial.product}
+                    </p>
+                    <p className="text-xs text-gold-600 font-medium">
+                      {testimonial.date}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Seção CTA antes de Recomendações */}
+        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 border-2 border-orange-200 rounded-2xl p-8 mb-20 text-center">
+          <h2 className="text-2xl font-serif text-gray-900 mb-3">
+            Pronto para Encomendar?
+          </h2>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Garanta a sua encomenda agora mesmo! Produtos frescos, qualidade garantida, entrega rápida.
+          </p>
+          <button
+            onClick={() => window.scrollTo({ top: 320, behavior: 'smooth' })}
+            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-gold-600 to-orange-600 text-white font-bold rounded-xl hover:from-gold-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-2xl"
+          >
+            <ShoppingCart size={20} />
+            Ir para a Compra
+          </button>
         </div>
 
         {/* Recommendations Section */}
