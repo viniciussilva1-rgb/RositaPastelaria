@@ -253,6 +253,11 @@ const ProductDetail: React.FC = () => {
   const handleProductAction = () => {
     if (product?.category === 'Especiais') {
       setQuoteModal({ isOpen: true, product });
+    } else if (isPackSalgados && currentStep === 1) {
+      setCurrentStep(2);
+      // Scroll suave para a seleção de sabores
+      const flavorSection = document.getElementById('flavor-selection');
+      if (flavorSection) flavorSection.scrollIntoView({ behavior: 'smooth' });
     } else {
       handleAddToCart();
     }
@@ -367,45 +372,13 @@ const ProductDetail: React.FC = () => {
             
             {/* Description */}
             <div className="mb-8">
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Descrição</h3>
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Sobre este Produto</h3>
               <p className="text-gray-600 leading-relaxed text-lg">
                 {product.description}
               </p>
             </div>
             
-            {/* Benefícios & Diferenciais */}
-            <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-gold-50 to-orange-50 border border-gold-200 rounded-lg p-4 flex gap-3">
-                <span className="text-2xl flex-shrink-0">👨‍🍳</span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Receita Artesanal</p>
-                  <p className="text-xs text-gray-600">Feito à mão com ingredientes premium</p>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 flex gap-3">
-                <span className="text-2xl flex-shrink-0">✨</span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Frescura Garantida</p>
-                  <p className="text-xs text-gray-600">Produzido diariamente</p>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 flex gap-3">
-                <span className="text-2xl flex-shrink-0">🎁</span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Qualidade Premium</p>
-                  <p className="text-xs text-gray-600">Seleção de ingredientes especiais</p>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-lg p-4 flex gap-3">
-                <span className="text-2xl flex-shrink-0">💝</span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Apresentação Cuidada</p>
-                  <p className="text-xs text-gray-600">Embalagem elegante</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Info adicional baseada na categoria */}
+            {/* Pack Salgados - Sistema de Seleção Simplificado (50/100 un) */}
             {product.category === 'Bolos de Aniversário' && (
               <div className="bg-gold-50 border border-gold-200 rounded-xl p-4 mb-6">
                 <p className="text-gold-800 text-sm">
@@ -506,7 +479,7 @@ const ProductDetail: React.FC = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-6" id="flavor-selection">
                     <div className="flex items-center justify-between">
                       <button 
                         onClick={() => setCurrentStep(1)}
@@ -638,6 +611,8 @@ const ProductDetail: React.FC = () => {
                   className={`w-full flex items-center justify-center gap-3 py-5 px-6 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-2xl ${
                     addedToCart
                       ? 'bg-gradient-to-r from-green-400 to-green-600 text-white'
+                      : isPackSalgados && currentStep === 1
+                      ? 'bg-gradient-to-r from-gray-800 to-black text-white hover:from-black hover:to-gray-900'
                       : product.category === 'Especiais'
                       ? 'bg-gradient-to-r from-gold-500 to-gold-700 text-white hover:from-gold-600 hover:to-gold-800'
                       : 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700'
@@ -646,17 +621,22 @@ const ProductDetail: React.FC = () => {
                   {addedToCart ? (
                     <>
                       <span className="text-2xl animate-bounce">✓</span>
-                      Adicionado ao Carrinho!
+                      Adicionado!
                     </>
                   ) : product.category === 'Especiais' ? (
                     <>
                       <MessageCircle size={24} />
                       Pedir Orçamento
                     </>
+                  ) : isPackSalgados && currentStep === 1 ? (
+                    <>
+                      <ChevronRight size={24} />
+                      Escolher Sabores
+                    </>
                   ) : (
                     <>
                       <ShoppingCart size={24} />
-                      Adicionar ao Carrinho
+                      {isPackSalgados ? 'Finalizar Pack e Adicionar' : 'Adicionar ao Carrinho'}
                     </>
                   )}
                 </button>
@@ -667,25 +647,13 @@ const ProductDetail: React.FC = () => {
                 </div>
               )}
               
-              {/* Submessagens de Confiança */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                  <p className="text-green-700 text-xs font-bold">✓ Fresco Garantido</p>
-                  <p className="text-green-600 text-[11px] mt-1">Feito à mão diariamente</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                  <p className="text-blue-700 text-xs font-bold">🚚 Entrega Rápida</p>
-                  <p className="text-blue-600 text-[11px] mt-1">24-48h em Lisboa</p>
-                </div>
-              </div>
-              
               {/* Botão de Compartilhar */}
               <button
                 onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 py-3 px-6 border-2 border-gray-200 rounded-xl text-gray-600 hover:border-gold-400 hover:text-gold-600 hover:bg-gold-50 transition-all font-medium"
+                className="w-full flex items-center justify-center gap-2 py-3 px-6 border border-gray-200 rounded-xl text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-all text-sm"
                 title="Partilhar"
               >
-                <Share2 size={18} />
+                <Share2 size={16} />
                 Partilhar este Produto
               </button>
             </div>
@@ -703,10 +671,10 @@ const ProductDetail: React.FC = () => {
               return (
                 <Link 
                   to={`/produto/${packSalgados.id}`}
-                  className="block mb-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 hover:shadow-lg hover:border-green-300 transition-all group"
+                  className="block mb-8 bg-gray-50 border border-gray-200 rounded-xl p-5 hover:shadow-md transition-all group"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-green-100 flex-shrink-0">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                       <img 
                         src={packSalgados.image} 
                         alt="Pack Salgados"
@@ -715,28 +683,18 @@ const ProductDetail: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">💡</span>
-                        <span className="text-green-800 font-bold text-sm uppercase tracking-wide">Quer economizar?</span>
-                        <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">MELHOR PREÇO</span>
+                        <span className="text-gray-900 font-bold text-sm uppercase tracking-wide">Opção Económica</span>
+                        <span className="bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">POUPANÇA</span>
                       </div>
-                      <p className="text-green-700 text-sm mb-3">
-                        Com o <strong>Pack de Salgados</strong> o preço cai para até <strong>€0.38/unidade</strong> em vez de €{unitPriceIndividual.toFixed(2)}/un.
+                      <p className="text-gray-600 text-sm mb-3">
+                        Com o <strong>Pack de Salgados</strong> o preço por unidade é reduzido substancialmente.
                       </p>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="bg-white rounded-lg px-3 py-2 border border-green-200">
-                          <div className="text-xs text-gray-500">50 un. Fritos</div>
-                          <div className="font-bold text-green-600">€20.00</div>
-                          <div className="text-[10px] text-gray-400">€0.40/un</div>
-                        </div>
-                        <div className="bg-green-500 text-white rounded-lg px-3 py-2 relative">
-                          <span className="absolute -top-2 -right-1 bg-yellow-400 text-green-900 text-[8px] font-bold px-1.5 py-0.5 rounded-full">TOP</span>
-                          <div className="text-xs opacity-90">100 un. Fritos</div>
-                          <div className="font-bold">€38.00</div>
-                          <div className="text-[10px] opacity-80">€0.38/un</div>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700">
+                        <span className="px-2 py-1 bg-white border border-gray-200 rounded">50 un: €20 (€0.40/un)</span>
+                        <span className="px-2 py-1 bg-gray-800 text-white rounded">100 un: €38 (€0.38/un)</span>
                       </div>
-                      <p className="text-green-600 text-xs mt-3 font-medium">
-                        🎉 Poupa até <strong>€{savingsPer100.toFixed(2)}</strong> em cada 100 unidades! Clique para ver o pack.
+                      <p className="text-gray-500 text-[11px] mt-3">
+                        Poupe até <strong>€{savingsPer100.toFixed(2)}</strong> ao encomendar em pack.
                       </p>
                     </div>
                   </div>
