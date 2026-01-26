@@ -181,8 +181,10 @@ const ProductDetail: React.FC = () => {
   // Verificar se é Pack Salgados
   const isPackSalgados = product?.category === 'Pack Salgados';
   
-  // Obter salgados disponíveis para seleção de sabores no pack
-  const availableFlavors = products.filter(p => p.category === 'Salgados');
+  // Obter salgados disponíveis para seleção de sabores no pack (tanto fritos quanto congelados)
+  const availableFriedSalgados = products.filter(p => p.category === 'Salgados');
+  const availableFrozenSalgados = products.filter(p => p.category === 'Salgados Congelados');
+  const availableFlavors = [...availableFriedSalgados, ...availableFrozenSalgados];
   
   // Calcular total de sabores selecionados
   const flavorValues = Object.values(flavorSelections) as number[];
@@ -658,103 +660,214 @@ const ProductDetail: React.FC = () => {
                     </span>
                   </h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    Selecione {packQuantity} unidades no total. Pode escolher diferentes quantidades de cada sabor.
+                    Selecione {packQuantity} unidades no total. Pode escolher diferentes quantidades de cada sabor. Pode misturar fritos e congelados!
                   </p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {availableFlavors.map((flavor) => {
-                      const currentQty = flavorSelections[flavor.id] || 0;
-                      
-                      return (
-                        <div 
-                          key={flavor.id}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                            currentQty > 0 
-                              ? 'border-orange-300 bg-orange-50' 
-                              : 'border-gray-200 bg-white hover:border-gray-300'
-                          }`}
-                        >
-                          <img 
-                            src={flavor.image} 
-                            alt={flavor.name}
-                            className="w-14 h-14 rounded-lg object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://placehold.co/56x56/F0EAD6/944D46?text=🥟';
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm truncate">{flavor.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{flavor.description}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => {
-                                if (currentQty > 0) {
-                                  setFlavorSelections(prev => ({
-                                    ...prev,
-                                    [flavor.id]: currentQty - 1
-                                  }));
-                                }
-                              }}
-                              disabled={currentQty === 0}
-                              className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                  {/* Salgados Fritos */}
+                  {availableFriedSalgados.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-gold-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-gold-500"></span>
+                        Salgados Fritos
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {availableFriedSalgados.map((flavor) => {
+                          const currentQty = flavorSelections[flavor.id] || 0;
+                          
+                          return (
+                            <div 
+                              key={flavor.id}
+                              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                                 currentQty > 0 
-                                  ? 'bg-orange-500 text-white hover:bg-orange-600' 
-                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  ? 'border-gold-300 bg-gold-50' 
+                                  : 'border-gray-200 bg-white hover:border-gray-300'
                               }`}
                             >
-                              −
-                            </button>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={currentQty || ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                if (value === '') {
-                                  setFlavorSelections(prev => ({
-                                    ...prev,
-                                    [flavor.id]: 0
-                                  }));
-                                } else {
-                                  const num = parseInt(value);
-                                  // Calcular máximo permitido para este sabor
-                                  const otherFlavorsTotal = totalFlavorsSelected - currentQty;
-                                  const maxAllowed = packQuantity - otherFlavorsTotal;
-                                  const finalQty = Math.min(num, maxAllowed);
-                                  setFlavorSelections(prev => ({
-                                    ...prev,
-                                    [flavor.id]: finalQty
-                                  }));
-                                }
-                              }}
-                              onFocus={(e) => e.target.select()}
-                              className="w-12 text-center font-bold text-gray-900 bg-transparent border border-gray-200 rounded-lg py-1 focus:border-orange-400 focus:outline-none"
-                            />
-                            <button
-                              onClick={() => {
-                                if (totalFlavorsSelected < packQuantity) {
-                                  setFlavorSelections(prev => ({
-                                    ...prev,
-                                    [flavor.id]: currentQty + 1
-                                  }));
-                                }
-                              }}
-                              disabled={totalFlavorsSelected >= packQuantity}
-                              className={`w-8 h-8 rounded-lg font-bold transition-colors ${
-                                totalFlavorsSelected < packQuantity 
-                                  ? 'bg-orange-500 text-white hover:bg-orange-600' 
-                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              <img 
+                                src={flavor.image} 
+                                alt={flavor.name}
+                                className="w-14 h-14 rounded-lg object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://placehold.co/56x56/F0EAD6/944D46?text=🥟';
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-sm truncate">{flavor.name}</p>
+                                <p className="text-xs text-gray-500 truncate">€{flavor.price.toFixed(2)}/un</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (currentQty > 0) {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: currentQty - 1
+                                      }));
+                                    }
+                                  }}
+                                  disabled={currentQty === 0}
+                                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                    currentQty > 0 
+                                      ? 'bg-gold-500 text-white hover:bg-gold-600' 
+                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  −
+                                </button>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={currentQty || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    if (value === '') {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: 0
+                                      }));
+                                    } else {
+                                      const num = parseInt(value);
+                                      const otherFlavorsTotal = totalFlavorsSelected - currentQty;
+                                      const maxAllowed = packQuantity - otherFlavorsTotal;
+                                      const finalQty = Math.min(num, maxAllowed);
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: finalQty
+                                      }));
+                                    }
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-12 text-center font-bold text-gray-900 bg-transparent border border-gray-200 rounded-lg py-1 focus:border-gold-400 focus:outline-none"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (totalFlavorsSelected < packQuantity) {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: currentQty + 1
+                                      }));
+                                    }
+                                  }}
+                                  disabled={totalFlavorsSelected >= packQuantity}
+                                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                    totalFlavorsSelected < packQuantity 
+                                      ? 'bg-gold-500 text-white hover:bg-gold-600' 
+                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Salgados Congelados */}
+                  {availableFrozenSalgados.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                        Salgados Congelados
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {availableFrozenSalgados.map((flavor) => {
+                          const currentQty = flavorSelections[flavor.id] || 0;
+                          
+                          return (
+                            <div 
+                              key={flavor.id}
+                              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                                currentQty > 0 
+                                  ? 'border-blue-300 bg-blue-50' 
+                                  : 'border-gray-200 bg-white hover:border-gray-300'
                               }`}
                             >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                              <img 
+                                src={flavor.image} 
+                                alt={flavor.name}
+                                className="w-14 h-14 rounded-lg object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://placehold.co/56x56/F0EAD6/944D46?text=❄️';
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-sm truncate">{flavor.name}</p>
+                                <p className="text-xs text-gray-500 truncate">€{flavor.price.toFixed(2)}/un</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (currentQty > 0) {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: currentQty - 1
+                                      }));
+                                    }
+                                  }}
+                                  disabled={currentQty === 0}
+                                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                    currentQty > 0 
+                                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  −
+                                </button>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={currentQty || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    if (value === '') {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: 0
+                                      }));
+                                    } else {
+                                      const num = parseInt(value);
+                                      const otherFlavorsTotal = totalFlavorsSelected - currentQty;
+                                      const maxAllowed = packQuantity - otherFlavorsTotal;
+                                      const finalQty = Math.min(num, maxAllowed);
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: finalQty
+                                      }));
+                                    }
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-12 text-center font-bold text-gray-900 bg-transparent border border-gray-200 rounded-lg py-1 focus:border-blue-400 focus:outline-none"
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (totalFlavorsSelected < packQuantity) {
+                                      setFlavorSelections(prev => ({
+                                        ...prev,
+                                        [flavor.id]: currentQty + 1
+                                      }));
+                                    }
+                                  }}
+                                  disabled={totalFlavorsSelected >= packQuantity}
+                                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                                    totalFlavorsSelected < packQuantity 
+                                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   
                   {availableFlavors.length === 0 && (
                     <div className="text-center py-8 bg-gray-50 rounded-xl">

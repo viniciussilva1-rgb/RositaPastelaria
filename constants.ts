@@ -80,6 +80,42 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: 'Salgados'
   },
 
+  // Salgados Congelados
+  {
+    id: '20',
+    name: 'Rissol de Camarão Congelado',
+    description: 'Rissol de camarão congelado, pronto para fritar ou cozer no forno.',
+    price: 0.95,
+    image: 'https://images.unsplash.com/photo-1626698650073-619f5635035e?q=80&w=800&auto=format&fit=crop',
+    category: 'Salgados Congelados'
+  },
+  {
+    id: '21',
+    name: 'Croquete de Carne Congelada',
+    description: 'Croquete de carne congelada, ideal para eventos e festas.',
+    price: 0.95,
+    image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?q=80&w=800&auto=format&fit=crop',
+    category: 'Salgados Congelados'
+  },
+  {
+    id: '22',
+    name: 'Empada de Galinha Congelada',
+    description: 'Empada de galinha congelada, fresca e saborosa.',
+    price: 1.00,
+    image: 'https://images.unsplash.com/photo-1628203535284-902242503541?q=80&w=800&auto=format&fit=crop',
+    category: 'Salgados Congelados'
+  },
+
+  // Pack de Salgados Personalizados
+  {
+    id: '30',
+    name: 'Pack Personalizado de Salgados',
+    description: 'Escolha os seus salgados favoritos, fritos ou congelados, e crie o seu próprio pack com o melhor preço por unidade.',
+    price: 20.00,
+    image: 'https://images.unsplash.com/photo-1564759077030-6b83605d4212?q=80&w=800&auto=format&fit=crop',
+    category: 'Pack Salgados'
+  },
+
   // Doces Tradicionais
   {
     id: '1',
