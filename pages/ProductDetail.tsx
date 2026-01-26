@@ -167,7 +167,9 @@ const ProductDetail: React.FC = () => {
   const product = products.find(p => p.id === id);
   
   // Verificar se é Pack Salgados
-  const isPackSalgados = product?.category === 'Pack Salgados';
+  const isPackSalgados = product?.category === 'Pack Salgados' || 
+                       product?.name.toLowerCase().includes('pack de salgados') ||
+                       product?.id === '30';
   
   // Obter salgados disponíveis para seleção de sabores no pack
   const availableFriedSalgados = products.filter(p => p.category === 'Salgados');

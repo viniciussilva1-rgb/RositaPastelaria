@@ -109,8 +109,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   // Pack de Salgados Personalizados
   {
     id: '30',
-    name: 'Pack Personalizado de Salgados',
-    description: 'Escolha os seus salgados favoritos, fritos ou congelados, e crie o seu próprio pack com o melhor preço por unidade.',
+    name: 'Pack de Salgados',
+    description: 'Escolha os seus salgados favoritos, fritos ou congelados, e crie o seu próprio pack com o melhor preço por unidade. — Pack de 50 Salgados Fritos: 20€ | Congelados: 16.50€ — Pack de 100 Salgados Fritos: 38€ | Congelados: 33€ —',
     price: 20.00,
     image: 'https://images.unsplash.com/photo-1564759077030-6b83605d4212?q=80&w=800&auto=format&fit=crop',
     category: 'Pack Salgados'
