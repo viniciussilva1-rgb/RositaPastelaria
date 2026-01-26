@@ -286,6 +286,7 @@ const Admin: React.FC = () => {
   const stats = useMemo(() => {
     const totalProducts = products.length;
     const totalOrders = orders.length;
+    const totalStories = blogPosts.length;
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
     const pendingOrders = orders.filter(o => o.status === 'Pendente').length;
     const categoryCounts = products.reduce((acc, p) => {
@@ -293,8 +294,8 @@ const Admin: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
     
-    return { totalProducts, totalOrders, totalRevenue, pendingOrders, categoryCounts };
-  }, [products, orders]);
+    return { totalProducts, totalOrders, totalStories, totalRevenue, pendingOrders, categoryCounts };
+  }, [products, orders, blogPosts]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -804,11 +805,11 @@ const Admin: React.FC = () => {
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Grid3X3 size={24} className="text-purple-600" />
+                      <BookOpen size={24} className="text-purple-600" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{Object.keys(stats.categoryCounts).length}</p>
-                  <p className="text-sm text-gray-500 mt-1">Categorias Ativas</p>
+                  <p className="text-3xl font-bold text-gray-900">{stats.totalStories}</p>
+                  <p className="text-sm text-gray-500 mt-1">Histórias Publicadas</p>
                 </div>
               </div>
 
@@ -870,6 +871,12 @@ const Admin: React.FC = () => {
                     className="flex items-center gap-2 bg-white text-gold-700 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gold-50 transition-colors"
                   >
                     <Plus size={18} /> Novo Produto
+                  </button>
+                  <button 
+                    onClick={() => { setActiveTab('blog'); handleNewBlogPostClick(); }}
+                    className="flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-white/30 transition-colors"
+                  >
+                    <BookOpen size={18} /> Nova História
                   </button>
                   <button 
                     onClick={() => setActiveTab('orders')}
