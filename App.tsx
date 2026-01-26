@@ -55,12 +55,12 @@ const Footer = () => {
     // Se o dia fechado for segunda (1)
     if (closedDay === 1) {
       return {
-        weekDays: 'Ter - Sáb',
+        weekDays: 'Ter - Domingo',
         weekSchedule: siteConfig.contact.scheduleWeek,
-        weekendDay: 'Domingo',
-        weekendSchedule: siteConfig.contact.scheduleWeekend,
-        extraDay: 'Segunda',
-        extraSchedule: 'Folga'
+        weekendDay: 'Segunda',
+        weekendSchedule: 'Folga',
+        extraDay: null,
+        extraSchedule: null
       };
     }
     
