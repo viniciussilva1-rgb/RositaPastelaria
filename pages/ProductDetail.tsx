@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle, Store, Truck } from 'lucide-react';
 import { Product } from '../types';
 
 // Modal de Pedido de Orçamento
@@ -489,7 +489,7 @@ const ProductDetail: React.FC = () => {
                             : 'border-white bg-white text-gray-400 hover:border-gray-200'
                         }`}
                       >
-                        🍽️ Pronto a Comer
+                        Pronto a Comer
                       </button>
                       <button
                         onClick={() => setSelectedState('frozen')}
@@ -499,7 +499,7 @@ const ProductDetail: React.FC = () => {
                             : 'border-white bg-white text-gray-400 hover:border-gray-200'
                         }`}
                       >
-                        ❄️ Congelado
+                        Congelado
                       </button>
                     </div>
                   </div>
@@ -566,7 +566,7 @@ const ProductDetail: React.FC = () => {
                             }`}
                           >
                             <span className="block text-lg font-bold capitalize text-gray-900">
-                              {type === 'fritos' ? '🔥 Fritos' : '❄️ Congelados'}
+                              {type === 'fritos' ? 'Fritos' : 'Congelados'}
                             </span>
                             <span className="text-sm font-bold text-orange-600">
                               €{predefinedPacks[selectedPackUnits as 50 | 100][type].price.toFixed(2)}
@@ -591,7 +591,7 @@ const ProductDetail: React.FC = () => {
                       onClick={() => setCurrentStep(2)}
                       className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
                     >
-                      Continuar para Sabores
+                      escolha os tipos de salgados no seu pack
                       <ChevronRight size={20} />
                     </button>
                   </div>
@@ -641,7 +641,7 @@ const ProductDetail: React.FC = () => {
 
                     {remainingUnits === 0 && (
                       <div className="p-4 bg-green-50 border border-green-200 rounded-2xl">
-                        <p className="text-green-700 text-sm font-bold text-center">✨ Pack Completo! Já pode adicionar ao carrinho.</p>
+                        <p className="text-green-700 text-sm font-bold text-center">Pack Completo! Já pode adicionar ao carrinho.</p>
                       </div>
                     )}
                   </div>
@@ -660,7 +660,7 @@ const ProductDetail: React.FC = () => {
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
-                        <span className="text-2xl">🏪</span>
+                        <Store size={24} />
                         <span className="font-bold">Levantar na Loja</span>
                       </button>
                       <button
@@ -671,7 +671,7 @@ const ProductDetail: React.FC = () => {
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
-                        <span className="text-2xl">🚚</span>
+                        <Truck size={24} />
                         <span className="font-bold">Entrega</span>
                       </button>
                     </div>
