@@ -2277,7 +2277,16 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                       <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
                       <select 
                         value={productForm.category}
-                        onChange={e => setProductForm({...productForm, category: e.target.value})}
+                        onChange={e => {
+                          const newCat = e.target.value;
+                          const isPronto = newCat === 'Pronto para Comer';
+                          setProductForm({
+                            ...productForm, 
+                            category: newCat,
+                            hasDoses: isPronto ? true : productForm.hasDoses,
+                            allowStateSelection: isPronto ? true : productForm.allowStateSelection
+                          });
+                        }}
                         className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none bg-white"
                       >
                         {categories.map(cat => (
@@ -2314,11 +2323,11 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                       <input 
                         type="checkbox" 
                         className="sr-only"
-                        checked={productForm.hasDoses || productForm.category === 'Pronto para Comer'}
+                        checked={productForm.hasDoses}
                         onChange={e => setProductForm({...productForm, hasDoses: e.target.checked})}
                       />
-                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.hasDoses || productForm.category === 'Pronto para Comer' ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.hasDoses || productForm.category === 'Pronto para Comer' ? 'translate-x-6' : ''}`}></div>
+                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.hasDoses ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.hasDoses ? 'translate-x-6' : ''}`}></div>
                     </div>
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Ativar 1 Dose / Meia Dose</span>
                   </label>
@@ -2328,20 +2337,20 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                       <input 
                         type="checkbox" 
                         className="sr-only"
-                        checked={productForm.allowStateSelection || productForm.category === 'Pronto para Comer'}
+                        checked={productForm.allowStateSelection}
                         onChange={e => setProductForm({...productForm, allowStateSelection: e.target.checked})}
                       />
-                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.allowStateSelection || productForm.category === 'Pronto para Comer' ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.allowStateSelection || productForm.category === 'Pronto para Comer' ? 'translate-x-6' : ''}`}></div>
+                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.allowStateSelection ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.allowStateSelection ? 'translate-x-6' : ''}`}></div>
                     </div>
                     <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Ativar Congelado / Pronto a Comer</span>
                   </label>
                 </div>
 
-                {(productForm.hasDoses || productForm.allowStateSelection || productForm.category === 'Pronto para Comer') && (
+                {(productForm.hasDoses || productForm.allowStateSelection) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                     {/* Caso tenha ambos (Doses e Estados) */}
-                    {(productForm.hasDoses && productForm.allowStateSelection) || productForm.category === 'Pronto para Comer' ? (
+                    {(productForm.hasDoses && productForm.allowStateSelection) ? (
                       <>
                         <div className="space-y-4">
                           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Preços: Pronto a Comer</p>
