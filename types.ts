@@ -17,6 +17,10 @@ export interface Product {
   priceHalfDoseReady?: number;
   priceFullDoseFrozen?: number;
   priceHalfDoseFrozen?: number;
+  // Dynamic Packs (New)
+  isDynamicPack?: boolean;
+  packSize?: number;
+  allowedProducts?: string[]; // Array of product IDs allowed as flavors
 }
 
 export interface CartItem extends Product {

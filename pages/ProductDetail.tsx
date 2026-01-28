@@ -170,10 +170,13 @@ const ProductDetail: React.FC = () => {
   // Encontrar o produto
   const product = products.find(p => p.id === id);
   
-  // Verificar se é Pack Salgados
+  // Verificar se é Pack Salgados ou Pack Dinâmico
   const isPackSalgados = product?.category === 'Pack Salgados' || 
                        product?.name.toLowerCase().includes('pack de salgados') ||
                        product?.id === '30';
+  
+  const isDynamicPack = product?.isDynamicPack;
+  const isAnyPack = isPackSalgados || isDynamicPack;
 
   // Verificar se tem doses ou estados
   const isProntoParaComer = product?.category === 'Pronto para Comer' || product?.hasDoses || product?.allowStateSelection;
@@ -181,6 +184,9 @@ const ProductDetail: React.FC = () => {
   // Calcular preço dinâmico
   const currentPrice = useMemo(() => {
     if (!product) return 0;
+    if (isAnyPack) {
+       return isDynamicPack ? (product.price || 0) : predefinedPacks[selectedPackUnits][selectedPackType].price;
+    }
     if (!isProntoParaComer) return product.price;
 
     const hasDoses = product.hasDoses || product.category === 'Pronto para Comer';
@@ -200,27 +206,33 @@ const ProductDetail: React.FC = () => {
     }
 
     return product.price;
-  }, [product, selectedDose, selectedState, isProntoParaComer]);
+  }, [product, selectedDose, selectedState, isProntoParaComer, isAnyPack, isDynamicPack, selectedPackUnits, selectedPackType]);
   
-  // Obter salgados disponíveis para seleção de sabores no pack
+  // Obter produtos permitidos para o pack dinâmico
+  const allowedPackProducts = useMemo(() => {
+    if (!product?.allowedProducts || !products) return [];
+    return products.filter(p => product.allowedProducts?.includes(p.id));
+  }, [product, products]);
+
+  // Obter salgados disponíveis para seleção de sabores no pack salgados
   const availableFriedSalgados = products.filter(p => p.category === 'Salgados');
   const availableFrozenSalgados = products.filter(p => p.category === 'Salgados Congelados');
   
   // Filtrar sabores de acordo com o tipo de pack selecionado
-  const availableFlavors = selectedPackType === 'fritos' ? availableFriedSalgados : availableFrozenSalgados;
+  const availableFlavors = isDynamicPack ? allowedPackProducts : (selectedPackType === 'fritos' ? availableFriedSalgados : availableFrozenSalgados);
   
   // Calcular total de sabores selecionados
+  const packLimit = isDynamicPack ? (product?.packSize || 0) : selectedPackUnits;
   const flavorValues = Object.values(flavorSelections) as number[];
   const totalFlavorsSelected: number = flavorValues.reduce((sum, qty) => sum + qty, 0);
-  const remainingUnits = selectedPackUnits - totalFlavorsSelected;
+  const remainingUnits = packLimit - totalFlavorsSelected;
   
   // Preço calculado com base na seleção
-  const packInfo = predefinedPacks[selectedPackUnits][selectedPackType];
-  const totalPackPrice = packInfo.price;
-  const pricePerUnit = totalPackPrice / selectedPackUnits;
+  const totalPackPrice = currentPrice;
+  const pricePerUnit = totalPackPrice / packLimit;
   
-  // Verificar se pode fazer entrega (mínimo 50 unidades para delivery)
-  const canDelivery = selectedPackUnits >= 50;
+  // Verificar se pode fazer entrega (mínimo 50 unidades para delivery, ou sempre para packs dinâmicos se permitido)
+  const canDelivery = isDynamicPack ? true : (selectedPackUnits >= 50);
   
   // Obter recomendações
   const recommendations = product ? getRecommendations(product, products) : [];
@@ -237,11 +249,11 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product) {
-      // Para Pack Salgados, criar um produto modificado com as unidades no nome e preço correto
-      if (isPackSalgados) {
+      // Para Pack Salgados ou Pack Dinâmico
+      if (isAnyPack) {
         // Verificar se os sabores foram selecionados corretamente
-        if (totalFlavorsSelected !== selectedPackUnits) {
-          alert(`Por favor, selecione exatamente ${selectedPackUnits} unidades de sabores. Faltam ${remainingUnits} unidades.`);
+        if (totalFlavorsSelected !== packLimit) {
+          alert(`Por favor, selecione exatamente ${packLimit} unidades de sabores. Faltam ${remainingUnits} unidades.`);
           return;
         }
         
@@ -260,13 +272,13 @@ const ProductDetail: React.FC = () => {
           })
           .join(', ');
         
-        const deliveryLabel = deliveryType === 'delivery' ? '🚚 Entrega' : '🏪 Levantamento';
-        const typeLabel = selectedPackType === 'fritos' ? 'Fritos' : 'Congelados';
+        const deliveryLabel = deliveryType === 'delivery' ? 'Entrega' : 'Levantamento';
+        const typeLabel = isDynamicPack ? '' : (selectedPackType === 'fritos' ? 'Fritos' : 'Congelados');
         
         const packProduct = {
           ...product,
           id: `${product.id}-${Date.now()}`,
-          name: `${product.name} ${selectedPackUnits}un. (${typeLabel}) - ${deliveryLabel}`,
+          name: `${product.name}${isDynamicPack ? '' : ` ${selectedPackUnits}un. (${typeLabel})`} - ${deliveryLabel}`,
           description: `Sabores: ${flavorsDescription}`,
           price: totalPackPrice
         };
@@ -304,8 +316,13 @@ const ProductDetail: React.FC = () => {
   const handleProductAction = () => {
     if (product?.category === 'Especiais') {
       setQuoteModal({ isOpen: true, product });
-    } else if (isPackSalgados && currentStep === 1) {
-      setCurrentStep(2);
+    } else if (isAnyPack && currentStep === 1) {
+      // Se for pack dinâmico e só tem sabores para escolher, pula direto se não houver etapa 1
+      if (isDynamicPack) {
+        setCurrentStep(2);
+      } else {
+        setCurrentStep(2);
+      }
       // Scroll suave para a seleção de sabores
       const flavorSection = document.getElementById('flavor-selection');
       if (flavorSection) flavorSection.scrollIntoView({ behavior: 'smooth' });
@@ -433,7 +450,7 @@ const ProductDetail: React.FC = () => {
             {product.category === 'Bolos de Aniversário' && (
               <div className="bg-gold-50 border border-gold-200 rounded-xl p-4 mb-6">
                 <p className="text-gold-800 text-sm">
-                  <strong>💡 Nota:</strong> O preço indicado é por quilograma. Encomendas personalizadas disponíveis mediante orçamento.
+                  <strong>Nota:</strong> O preço indicado é por quilograma. Encomendas personalizadas disponíveis mediante orçamento.
                 </p>
               </div>
             )}
@@ -441,10 +458,7 @@ const ProductDetail: React.FC = () => {
             {product.category === 'Especiais' && (
               <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6">
                 <p className="text-purple-800 text-sm">
-                  <strong>✨ Produto Especial:</strong> Este produto é personalizado de acordo com as suas preferências. Contacte-nos para um orçamento à medida.
-                </p>
-              </div>
-            )}
+                  <strong>Produto Especial:</strong> Este produto é personalizado de acordo com as suas preferências. Contacte-nos para um orçamento à medida.
             
             {/* Opções de Dose e Estado para Pronto para Comer */}
             {isProntoParaComer && !isPackSalgados && (
@@ -512,19 +526,21 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
             
-            {/* Pack Salgados - Sistema de Seleção Simplificado (50/100 un) */}
-            {isPackSalgados && (
+            {/* Pack Salgados e Packs Dinâmicos */}
+            {isAnyPack && (
               <div className="space-y-8 animate-fade-in mb-8">
-                {/* Indicador de Passo */}
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${currentStep >= 1 ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
-                    <div className={`h-1 flex-1 rounded-full transition-colors ${currentStep >= 2 ? 'bg-orange-600' : 'bg-gray-200'}`}></div>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${currentStep >= 2 ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
+                {/* Indicador de Passo - Só mostra se não for dinâmico */}
+                {!isDynamicPack && (
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${currentStep >= 1 ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
+                      <div className={`h-1 flex-1 rounded-full transition-colors ${currentStep >= 2 ? 'bg-orange-600' : 'bg-gray-200'}`}></div>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${currentStep >= 2 ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {currentStep === 1 ? (
+                {(currentStep === 1 && !isDynamicPack) ? (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">1. Escolha a Quantidade</h3>
@@ -598,12 +614,17 @@ const ProductDetail: React.FC = () => {
                 ) : (
                   <div className="space-y-6" id="flavor-selection">
                     <div className="flex items-center justify-between">
-                      <button 
-                        onClick={() => setCurrentStep(1)}
-                        className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
-                      >
-                        <ArrowLeft size={16} /> Voltar
-                      </button>
+                      {!isDynamicPack && (
+                        <button 
+                          onClick={() => setCurrentStep(1)}
+                          className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
+                        >
+                          <ArrowLeft size={16} /> Voltar
+                        </button>
+                      )}
+                      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                        {isDynamicPack ? `Escolha os seus ${packLimit} itens` : 'Selecione os sabores'}
+                      </h3>
                       <span className={`text-sm font-bold px-3 py-1 rounded-full ${remainingUnits === 0 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                         {remainingUnits === 0 ? '✓ Completo' : `Faltam ${remainingUnits} un.`}
                       </span>
@@ -628,8 +649,8 @@ const ProductDetail: React.FC = () => {
                               </button>
                               <span className="font-bold w-4 text-center">{currentQty}</span>
                               <button
-                                onClick={() => totalFlavorsSelected < selectedPackUnits && setFlavorSelections(prev => ({ ...prev, [flavor.id]: currentQty + 1 }))}
-                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${totalFlavorsSelected < selectedPackUnits ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-300'}`}
+                                onClick={() => totalFlavorsSelected < packLimit && setFlavorSelections(prev => ({ ...prev, [flavor.id]: currentQty + 1 }))}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${totalFlavorsSelected < packLimit ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-300'}`}
                               >
                                 +
                               </button>
@@ -637,6 +658,13 @@ const ProductDetail: React.FC = () => {
                           </div>
                         );
                       })}
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                      <div className="flex justify-between items-center text-xl">
+                        <span className="text-gray-900 font-bold">Preço do Pack:</span>
+                        <span className="font-black text-orange-600">€{totalPackPrice.toFixed(2)}</span>
+                      </div>
                     </div>
 
                     {remainingUnits === 0 && (
@@ -648,7 +676,7 @@ const ProductDetail: React.FC = () => {
                 )}
                 
                 {/* Tipo de Entrega para Pack */}
-                {selectedPackUnits >= 50 && (
+                {(isDynamicPack || selectedPackUnits >= 50) && (
                   <div>
                     <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Como deseja receber?</h3>
                     <div className="grid grid-cols-2 gap-3">

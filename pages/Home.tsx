@@ -126,8 +126,16 @@ const Home: React.FC = () => {
   };
 
   const handleProductAction = (product: any) => {
+    const hasOptions = product.category === 'Pronto para Comer' || 
+                      product.category === 'Pack Salgados' || 
+                      product.isDynamicPack || 
+                      product.hasDoses || 
+                      product.allowStateSelection;
+
     if (product.category === 'Especiais') {
       setQuoteModal({ isOpen: true, product });
+    } else if (hasOptions) {
+      navigate(`/produto/${product.id}`);
     } else {
       addToCart(product);
     }
@@ -543,7 +551,7 @@ const Home: React.FC = () => {
 
                   <div className="bg-cream-50 p-4 rounded-lg border border-cream-200">
                     <p className="text-xs text-gray-500">
-                      📝 A sua avaliação será revista pela nossa equipa antes de ser publicada. Agradecemos a sua paciência!
+                      A sua avaliação será revista pela nossa equipa antes de ser publicada. Agradecemos a sua paciência!
                     </p>
                   </div>
 

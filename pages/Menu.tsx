@@ -116,6 +116,7 @@ const Menu: React.FC = () => {
   const handleProductAction = (product: any) => {
     const hasOptions = product.category === 'Pronto para Comer' || 
                       product.category === 'Pack Salgados' || 
+                      product.isDynamicPack || 
                       product.hasDoses || 
                       product.allowStateSelection;
 

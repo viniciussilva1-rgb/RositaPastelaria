@@ -258,7 +258,10 @@ const Admin: React.FC = () => {
     priceFullDoseReady: 0,
     priceHalfDoseReady: 0,
     priceFullDoseFrozen: 0,
-    priceHalfDoseFrozen: 0
+    priceHalfDoseFrozen: 0,
+    isDynamicPack: false,
+    packSize: 0,
+    allowedProducts: []
   };
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
@@ -2462,6 +2465,71 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                         </div>
                       </>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* Configuração de Pack Dinâmico */}
+              <div className="space-y-4 p-5 bg-amber-50 rounded-2xl border border-amber-200">
+                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingBag size={20} className="text-amber-600" />
+                  Configuração de Pack Personalizável
+                </h4>
+                
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only"
+                      checked={productForm.isDynamicPack}
+                      onChange={e => setProductForm({...productForm, isDynamicPack: e.target.checked})}
+                    />
+                    <div className={`w-12 h-6 rounded-full transition-colors ${productForm.isDynamicPack ? 'bg-amber-500' : 'bg-gray-300'}`}></div>
+                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.isDynamicPack ? 'translate-x-6' : ''}`}></div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Este produto é um Pack (ex: Pack 12 Doces)</span>
+                </label>
+
+                {productForm.isDynamicPack && (
+                  <div className="space-y-4 bg-white p-6 rounded-xl border border-amber-100 shadow-sm animate-fade-in">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade Total de Itens no Pack *</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={productForm.packSize || ''}
+                        onChange={e => setProductForm({...productForm, packSize: parseInt(e.target.value) || 0})}
+                        className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-amber-400 outline-none"
+                        placeholder="Ex: 12"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Produtos permitidos neste Pack (Sabores)</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-100 rounded-lg custom-scrollbar">
+                        {products
+                          .filter(p => !p.isDynamicPack && p.category !== 'Especiais' && p.id !== productForm.id)
+                          .map(p => (
+                            <label key={p.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors text-sm">
+                              <input 
+                                type="checkbox"
+                                checked={(productForm.allowedProducts || []).includes(p.id)}
+                                onChange={e => {
+                                  const current = productForm.allowedProducts || [];
+                                  if (e.target.checked) {
+                                    setProductForm({...productForm, allowedProducts: [...current, p.id]});
+                                  } else {
+                                    setProductForm({...productForm, allowedProducts: current.filter(id => id !== p.id)});
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <span className="truncate">{p.name} <span className="text-[10px] text-gray-400">({p.category})</span></span>
+                            </label>
+                          ))}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-2 italic">Dica: Selecione os produtos que o cliente poderá escolher para compor o pack.</p>
+                    </div>
                   </div>
                 )}
               </div>
