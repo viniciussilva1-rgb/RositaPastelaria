@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context';
-import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle, Store, Truck } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle, Store, Truck, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
 
 // Modal de Pedido de Orçamento
@@ -459,6 +459,9 @@ const ProductDetail: React.FC = () => {
               <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6">
                 <p className="text-purple-800 text-sm">
                   <strong>Produto Especial:</strong> Este produto é personalizado de acordo com as suas preferências. Contacte-nos para um orçamento à medida.
+                </p>
+              </div>
+            )}
             
             {/* Opções de Dose e Estado para Pronto para Comer */}
             {isProntoParaComer && !isPackSalgados && (
@@ -709,7 +712,7 @@ const ProductDetail: React.FC = () => {
             )}
             
             {/* Quantity & Add to Cart - Para outras categorias */}
-            {product.category !== 'Especiais' && !isPackSalgados && (
+            {product.category !== 'Especiais' && !isAnyPack && (
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-200 rounded-lg">
                   <button 
@@ -729,7 +732,7 @@ const ProductDetail: React.FC = () => {
                   </button>
                 </div>
                 <span className="text-gray-500 text-sm">
-                  Total: <span className="font-bold text-gray-900">€{(product.price * quantity).toFixed(2)}</span>
+                  Total: <span className="font-bold text-gray-900">€{(currentPrice * quantity).toFixed(2)}</span>
                 </span>
               </div>
             )}
@@ -765,7 +768,7 @@ const ProductDetail: React.FC = () => {
                 >
                   {addedToCart ? (
                     <>
-                      <span className="text-2xl animate-bounce">✓</span>
+                      <span className="text-2xl animate-bounce font-bold">✓</span>
                       Adicionado!
                     </>
                   ) : product.category === 'Especiais' ? (
@@ -773,7 +776,7 @@ const ProductDetail: React.FC = () => {
                       <MessageCircle size={24} />
                       Pedir Orçamento
                     </>
-                  ) : isPackSalgados && currentStep === 1 ? (
+                  ) : isAnyPack && currentStep === 1 && !isDynamicPack ? (
                     <>
                       <ChevronRight size={24} />
                       Escolher Sabores
@@ -781,7 +784,7 @@ const ProductDetail: React.FC = () => {
                   ) : (
                     <>
                       <ShoppingCart size={24} />
-                      {isPackSalgados ? 'Finalizar Pack e Adicionar' : 'Adicionar ao Carrinho'}
+                      {isAnyPack ? 'Finalizar Pack e Adicionar' : 'Adicionar ao Carrinho'}
                     </>
                   )}
                 </button>
