@@ -21,6 +21,10 @@ export interface Product {
   isDynamicPack?: boolean;
   packSize?: number;
   allowedProducts?: string[]; // Array of product IDs allowed as flavors
+  // Multi-size Pack Options
+  isMultiSizePack?: boolean;
+  price50?: number;
+  price100?: number;
 }
 
 export interface CartItem extends Product {

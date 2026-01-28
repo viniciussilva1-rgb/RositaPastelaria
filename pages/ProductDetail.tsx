@@ -185,7 +185,13 @@ const ProductDetail: React.FC = () => {
   const currentPrice = useMemo(() => {
     if (!product) return 0;
     if (isAnyPack) {
-       return isDynamicPack ? (product.price || 0) : predefinedPacks[selectedPackUnits][selectedPackType].price;
+       if (isDynamicPack) {
+         if (product.isMultiSizePack) {
+            return selectedPackUnits === 50 ? (product.price50 || 0) : (product.price100 || 0);
+         }
+         return product.price || 0;
+       }
+       return predefinedPacks[selectedPackUnits][selectedPackType].price;
     }
     if (!isProntoParaComer) return product.price;
 
@@ -207,7 +213,7 @@ const ProductDetail: React.FC = () => {
 
     return product.price;
   }, [product, selectedDose, selectedState, isProntoParaComer, isAnyPack, isDynamicPack, selectedPackUnits, selectedPackType]);
-  
+
   // Obter produtos permitidos para o pack dinâmico
   const allowedPackProducts = useMemo(() => {
     if (!product?.allowedProducts || !products) return [];
@@ -222,7 +228,7 @@ const ProductDetail: React.FC = () => {
   const availableFlavors = isDynamicPack ? allowedPackProducts : (selectedPackType === 'fritos' ? availableFriedSalgados : availableFrozenSalgados);
   
   // Calcular total de sabores selecionados
-  const packLimit = isDynamicPack ? (product?.packSize || 0) : selectedPackUnits;
+  const packLimit = isDynamicPack ? (product?.isMultiSizePack ? selectedPackUnits : (product?.packSize || 0)) : selectedPackUnits;
   const flavorValues = Object.values(flavorSelections) as number[];
   const totalFlavorsSelected: number = flavorValues.reduce((sum, qty) => sum + qty, 0);
   const remainingUnits = packLimit - totalFlavorsSelected;
@@ -278,7 +284,7 @@ const ProductDetail: React.FC = () => {
         const packProduct = {
           ...product,
           id: `${product.id}-${Date.now()}`,
-          name: `${product.name}${isDynamicPack ? '' : ` ${selectedPackUnits}un. (${typeLabel})`} - ${deliveryLabel}`,
+          name: `${product.name}${isDynamicPack && !product.isMultiSizePack ? '' : ` ${selectedPackUnits}un.`}${!isDynamicPack ? ` (${typeLabel})` : ''} - ${deliveryLabel}`,
           description: `Sabores: ${flavorsDescription}`,
           price: totalPackPrice
         };
@@ -543,7 +549,7 @@ const ProductDetail: React.FC = () => {
                   </div>
                 )}
 
-                {(currentStep === 1 && !isDynamicPack) ? (
+                {(currentStep === 1 && (!isDynamicPack || product?.isMultiSizePack)) ? (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">1. Escolha a Quantidade</h3>
@@ -562,43 +568,49 @@ const ProductDetail: React.FC = () => {
                             }`}
                           >
                             <span className="block text-2xl font-bold text-gray-900">{units}</span>
-                            <span className="text-sm text-gray-500 uppercase tracking-tighter">Salgados</span>
+                            <span className="text-sm text-gray-500 uppercase tracking-tighter">
+                              {product?.category === 'Doces' ? 'Doces' : 'Unidades'}
+                            </span>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">2. Escolha o Tipo</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {(['fritos', 'congelados'] as const).map((type) => (
-                          <button
-                            key={type}
-                            onClick={() => {
-                              setSelectedPackType(type);
-                              setFlavorSelections({});
-                            }}
-                            className={`p-4 rounded-2xl border-2 transition-all text-center ${
-                              selectedPackType === type 
-                                ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100' 
-                                : 'border-gray-100 bg-white hover:border-gray-300'
-                            }`}
-                          >
-                            <span className="block text-lg font-bold capitalize text-gray-900">
-                              {type === 'fritos' ? 'Fritos' : 'Congelados'}
-                            </span>
-                            <span className="text-sm font-bold text-orange-600">
-                              €{predefinedPacks[selectedPackUnits as 50 | 100][type].price.toFixed(2)}
-                            </span>
-                          </button>
-                        ))}
+                    {!isDynamicPack && (
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">2. Escolha o Tipo</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {(['fritos', 'congelados'] as const).map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setSelectedPackType(type);
+                                setFlavorSelections({});
+                              }}
+                              className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                                selectedPackType === type 
+                                  ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100' 
+                                  : 'border-gray-100 bg-white hover:border-gray-300'
+                              }`}
+                            >
+                              <span className="block text-lg font-bold capitalize text-gray-900">
+                                {type === 'fritos' ? 'Fritos' : 'Congelados'}
+                              </span>
+                              <span className="text-sm font-bold text-orange-600">
+                                €{predefinedPacks[selectedPackUnits as 50 | 100][type].price.toFixed(2)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-600 text-sm">Pack Selecionado:</span>
-                        <span className="font-bold text-gray-900 capitalize text-sm">{selectedPackUnits} Salgados {selectedPackType}</span>
+                        <span className="font-bold text-gray-900 capitalize text-sm">
+                          {selectedPackUnits} {product?.category === 'Doces' ? 'Doces' : 'Unidades'} {!isDynamicPack && selectedPackType}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-xl">
                         <span className="text-gray-900 font-bold">Preço Total:</span>
@@ -610,14 +622,14 @@ const ProductDetail: React.FC = () => {
                       onClick={() => setCurrentStep(2)}
                       className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
                     >
-                      escolha os tipos de salgados no seu pack
+                      escolha os sabores no seu pack
                       <ChevronRight size={20} />
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-6" id="flavor-selection">
                     <div className="flex items-center justify-between">
-                      {!isDynamicPack && (
+                      {(!isDynamicPack || product?.isMultiSizePack) && (
                         <button 
                           onClick={() => setCurrentStep(1)}
                           className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
@@ -759,7 +771,7 @@ const ProductDetail: React.FC = () => {
                   className={`w-full flex items-center justify-center gap-3 py-5 px-6 rounded-2xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-2xl ${
                     addedToCart
                       ? 'bg-gradient-to-r from-green-400 to-green-600 text-white'
-                      : isPackSalgados && currentStep === 1
+                      : isAnyPack && currentStep === 1 && (!isDynamicPack || product?.isMultiSizePack)
                       ? 'bg-gradient-to-r from-gray-800 to-black text-white hover:from-black hover:to-gray-900'
                       : product.category === 'Especiais'
                       ? 'bg-gradient-to-r from-gold-500 to-gold-700 text-white hover:from-gold-600 hover:to-gold-800'
@@ -776,7 +788,7 @@ const ProductDetail: React.FC = () => {
                       <MessageCircle size={24} />
                       Pedir Orçamento
                     </>
-                  ) : isAnyPack && currentStep === 1 && !isDynamicPack ? (
+                  ) : isAnyPack && currentStep === 1 && (!isDynamicPack || product?.isMultiSizePack) ? (
                     <>
                       <ChevronRight size={24} />
                       Escolher Sabores

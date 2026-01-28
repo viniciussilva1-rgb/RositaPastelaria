@@ -261,7 +261,10 @@ const Admin: React.FC = () => {
     priceHalfDoseFrozen: 0,
     isDynamicPack: false,
     packSize: 0,
-    allowedProducts: []
+    allowedProducts: [],
+    isMultiSizePack: false,
+    price50: 0,
+    price100: 0
   };
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
@@ -399,12 +402,18 @@ const Admin: React.FC = () => {
     
     // Validação: nome obrigatório, preço > 0 (exceto para categoria "Especiais")
     const isEspeciais = productForm.category === 'Especiais';
+    const isMultiSize = productForm.isMultiSizePack;
     if (!productForm.name) {
       alert("Por favor preencha o nome do produto.");
       return;
     }
-    if (!isEspeciais && productForm.price <= 0) {
+    if (!isEspeciais && !isMultiSize && productForm.price <= 0) {
       alert("Por favor preencha um preço válido.");
+      return;
+    }
+
+    if (isMultiSize && (productForm.price50 <= 0 || productForm.price100 <= 0)) {
+      alert("Por favor preencha os preços de 50 e 100 unidades.");
       return;
     }
     
@@ -2513,17 +2522,58 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
 
                 {productForm.isDynamicPack && (
                   <div className="space-y-4 bg-white p-6 rounded-xl border border-amber-100 shadow-sm animate-fade-in">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade Total de Itens no Pack *</label>
-                      <input 
-                        type="number" 
-                        min="1"
-                        value={productForm.packSize || ''}
-                        onChange={e => setProductForm({...productForm, packSize: parseInt(e.target.value) || 0})}
-                        className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-amber-400 outline-none"
-                        placeholder="Ex: 12"
-                      />
+                    <div className="flex items-center gap-6 p-4 bg-orange-50 rounded-xl mb-4 border border-orange-100">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={productForm.isMultiSizePack}
+                          onChange={e => setProductForm({...productForm, isMultiSizePack: e.target.checked})}
+                          className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-sm font-bold text-gray-800">Oferecer opções de 50 e 100 unidades</span>
+                      </label>
                     </div>
+
+                    {!productForm.isMultiSizePack ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade Total de Itens no Pack *</label>
+                        <input 
+                          type="number" 
+                          min="1"
+                          value={productForm.packSize || ''}
+                          onChange={e => setProductForm({...productForm, packSize: parseInt(e.target.value) || 0})}
+                          className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-amber-400 outline-none"
+                          placeholder="Ex: 12"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Preço Pack 50 unidades (€) *</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.price50 || ''}
+                              onChange={e => setProductForm({...productForm, price50: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-3 pl-8 focus:ring-2 focus:ring-amber-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Preço Pack 100 unidades (€) *</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.price100 || ''}
+                              onChange={e => setProductForm({...productForm, price100: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-3 pl-8 focus:ring-2 focus:ring-amber-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Produtos permitidos neste Pack (Sabores)</label>
