@@ -358,13 +358,22 @@ const Admin: React.FC = () => {
   };
 
   const handleEditProductClick = (product: Product) => {
-    setProductForm({ ...product });
+    setProductForm({ 
+      ...emptyProduct, 
+      ...product,
+      // Garantir que arrays existam
+      allowedProducts: product.allowedProducts || []
+    });
     setProductSavedSuccess(false);
     setIsEditingProduct(true);
   };
 
   const handleNewProductClick = () => {
-    setProductForm({ ...emptyProduct, id: Date.now().toString() });
+    setProductForm({ 
+      ...emptyProduct, 
+      id: Date.now().toString(),
+      allowedProducts: [] 
+    });
     setProductSavedSuccess(false);
     setIsEditingProduct(true);
   };
@@ -1002,6 +1011,11 @@ const Admin: React.FC = () => {
                                 />
                                 <div>
                                   <p className="font-semibold text-gray-900">{product.name}</p>
+                                  {product.isDynamicPack && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">
+                                      <ShoppingBag size={10} /> Pack ({product.packSize} un)
+                                    </span>
+                                  )}
                                   <p className="text-sm text-gray-500 line-clamp-1 max-w-xs">{product.description}</p>
                                 </div>
                               </div>
@@ -1076,7 +1090,14 @@ const Admin: React.FC = () => {
                         </span>
                       </div>
                       <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                          {product.isDynamicPack && (
+                            <span className="p-1 rounded bg-amber-100 text-amber-700" title={`Pack de ${product.packSize} unidades`}>
+                              <ShoppingBag size={14} />
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 line-clamp-2 mb-3">{product.description}</p>
                         <p className="text-lg font-bold text-gold-600">
                           €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm text-gray-500 font-normal">/Kg</span>}
