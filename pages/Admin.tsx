@@ -271,6 +271,9 @@ const Admin: React.FC = () => {
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
+  const [newFlavorName, setNewFlavorName] = useState('');
+  const [newFlavorImage, setNewFlavorImage] = useState('');
+
   // Category States
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -2626,60 +2629,70 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Sabores Específicos (Apenas Texto)</label>
-                      <div className="flex gap-2 mb-4">
-                        <input 
-                          type="text" 
-                          id="new-flavor-input"
-                          placeholder="Ex: Brigadeiro, Coco, Leite Ninho..."
-                          className="flex-1 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const input = e.currentTarget;
-                              const val = input.value.trim();
-                              if (val) {
-                                const current = productForm.customFlavors || [];
-                                if (!current.includes(val)) {
-                                  setProductForm({...productForm, customFlavors: [...current, val]});
-                                  input.value = '';
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Sabores Específicos (Com Foto)</label>
+                      <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 mb-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1 space-y-3">
+                            <input 
+                              type="text" 
+                              placeholder="Nome do Sabor (Ex: Brigadeiro)"
+                              value={newFlavorName}
+                              onChange={(e) => setNewFlavorName(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white"
+                            />
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <ImageUpload 
+                                  label="Foto do Sabor (Opcional)" 
+                                  value={newFlavorImage} 
+                                  onChange={setNewFlavorImage} 
+                                />
+                              </div>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                if (newFlavorName.trim()) {
+                                  const current = productForm.customFlavors || [];
+                                  setProductForm({
+                                    ...productForm, 
+                                    customFlavors: [...current, { name: newFlavorName.trim(), image: newFlavorImage }]
+                                  });
+                                  setNewFlavorName('');
+                                  setNewFlavorImage('');
                                 }
-                              }
-                            }
-                          }}
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            const input = document.getElementById('new-flavor-input') as HTMLInputElement;
-                            const val = input.value.trim();
-                            if (val) {
-                              const current = productForm.customFlavors || [];
-                              if (!current.includes(val)) {
-                                setProductForm({...productForm, customFlavors: [...current, val]});
-                                input.value = '';
-                              }
-                            }
-                          }}
-                          className="bg-amber-600 text-white px-4 py-3 rounded-lg hover:bg-amber-700 transition-colors"
-                        >
-                          Adicionar
-                        </button>
+                              }}
+                              className="w-full bg-amber-600 text-white px-4 py-3 rounded-lg hover:bg-amber-700 transition-colors font-bold flex items-center justify-center gap-2"
+                            >
+                              <Plus size={18} />
+                              Adicionar Sabor ao Pack
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {productForm.customFlavors && productForm.customFlavors.length > 0 && (
-                        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white border border-gray-100 rounded-xl shadow-inner">
                           {productForm.customFlavors.map((flavor, idx) => (
-                            <span key={idx} className="bg-white border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-sm font-medium">
-                              {flavor}
+                            <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-200 group relative">
+                              <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                                {flavor.image ? (
+                                  <img src={flavor.image} alt={flavor.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                    <ImagePlus size={16} />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="flex-1 font-bold text-gray-800 text-sm truncate">{flavor.name}</span>
                               <button 
                                 type="button"
                                 onClick={() => setProductForm({...productForm, customFlavors: productForm.customFlavors?.filter((_, i) => i !== idx)})}
-                                className="hover:text-red-500 transition-colors"
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                               >
-                                <X size={14} />
+                                <X size={16} />
                               </button>
-                            </span>
+                            </div>
                           ))}
                         </div>
                       )}

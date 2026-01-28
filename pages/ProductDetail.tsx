@@ -218,25 +218,18 @@ const ProductDetail: React.FC = () => {
   const allowedPackProducts = useMemo(() => {
     let baseProducts: Product[] = [];
     
-    // 1. Produtos já registados selecionados pelo admin
+    // 1. Produtos já registados especificamente selecionados pelo admin
     if (product?.allowedProducts && product.allowedProducts.length > 0) {
       baseProducts = products.filter(p => product.allowedProducts?.includes(p.id));
-    } else if (products) {
-      // Fallback: produtos da categoria Doces
-      baseProducts = products.filter(p => 
-        !p.isDynamicPack && 
-        p.id !== product?.id &&
-        (p.category === 'Doces' || p.category === product?.category)
-      );
     }
 
-    // 2. Sabores customizados (apenas texto) convertidos em "produtos virtuais"
+    // 2. Sabores customizados (com foto opcional) convertidos em "produtos virtuais"
     const virtualProducts: Product[] = (product?.customFlavors || []).map((flavor, index) => ({
       id: `virtual-${index}`,
-      name: flavor,
+      name: flavor.name, // flavor agora é um objeto { name, image }
       description: 'Sabor exclusivo do pack',
       price: 0,
-      image: product?.image || '', // Usa a imagem do pack como fallback
+      image: flavor.image || product?.image || '', // Agora usa a imagem do sabor se existir
       category: product?.category || 'Doces'
     }));
 

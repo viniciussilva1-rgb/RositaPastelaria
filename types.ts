@@ -1,3 +1,8 @@
+export interface CustomFlavor {
+  name: string;
+  image?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -25,7 +30,7 @@ export interface Product {
   isMultiSizePack?: boolean;
   price50?: number;
   price100?: number;
-  customFlavors?: string[]; // Simple list of flavors that don't need to be products
+  customFlavors?: CustomFlavor[]; // Objects with name and optional image
 }
 
 export interface CartItem extends Product {
