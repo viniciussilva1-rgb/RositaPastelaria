@@ -240,6 +240,8 @@ const Admin: React.FC = () => {
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [isEditingProduct, setIsEditingProduct] = useState(false);
   const emptyProduct: Product = { 
     id: '', 
     name: '', 
@@ -258,6 +260,7 @@ const Admin: React.FC = () => {
     priceFullDoseFrozen: 0,
     priceHalfDoseFrozen: 0
   };
+  const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
