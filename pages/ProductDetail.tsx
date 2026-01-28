@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useShop } from '../context';
 import { ShoppingCart, ArrowLeft, Heart, Share2, MessageCircle, Mail, Phone, X, ChevronRight, Sparkles, AlertCircle } from 'lucide-react';
@@ -159,6 +159,10 @@ const ProductDetail: React.FC = () => {
   const [selectedPackType, setSelectedPackType] = useState<'fritos' | 'congelados'>('fritos');
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Opções para "Pronto para Comer"
+  const [selectedDose, setSelectedDose] = useState<'full' | 'half'>('full');
+  const [selectedState, setSelectedState] = useState<'ready' | 'frozen'>('ready');
+
   // Pack Salgados - Seleção de sabores
   const [flavorSelections, setFlavorSelections] = useState<Record<string, number>>({});
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
@@ -170,6 +174,33 @@ const ProductDetail: React.FC = () => {
   const isPackSalgados = product?.category === 'Pack Salgados' || 
                        product?.name.toLowerCase().includes('pack de salgados') ||
                        product?.id === '30';
+
+  // Verificar se tem doses ou estados
+  const isProntoParaComer = product?.category === 'Pronto para Comer' || product?.hasDoses || product?.allowStateSelection;
+
+  // Calcular preço dinâmico
+  const currentPrice = useMemo(() => {
+    if (!product) return 0;
+    if (!isProntoParaComer) return product.price;
+
+    const hasDoses = product.hasDoses || product.category === 'Pronto para Comer';
+    const allowState = product.allowStateSelection || product.category === 'Pronto para Comer';
+
+    if (hasDoses && allowState) {
+      if (selectedDose === 'full' && selectedState === 'ready') return product.priceFullDoseReady || product.price;
+      if (selectedDose === 'half' && selectedState === 'ready') return product.priceHalfDoseReady || product.price * 0.6;
+      if (selectedDose === 'full' && selectedState === 'frozen') return product.priceFullDoseFrozen || product.price * 0.9;
+      if (selectedDose === 'half' && selectedState === 'frozen') return product.priceHalfDoseFrozen || product.price * 0.55;
+    } else if (hasDoses) {
+      if (selectedDose === 'full') return product.priceFullDose || product.price;
+      if (selectedDose === 'half') return product.priceHalfDose || product.price * 0.6;
+    } else if (allowState) {
+      if (selectedState === 'ready') return product.priceReady || product.price;
+      if (selectedState === 'frozen') return product.priceFrozen || product.price * 0.9;
+    }
+
+    return product.price;
+  }, [product, selectedDose, selectedState, isProntoParaComer]);
   
   // Obter salgados disponíveis para seleção de sabores no pack
   const availableFriedSalgados = products.filter(p => p.category === 'Salgados');
@@ -244,6 +275,24 @@ const ProductDetail: React.FC = () => {
         // Limpar seleções após adicionar
         setFlavorSelections({});
         setCurrentStep(1);
+      } else if (isProntoParaComer) {
+        const doseLabel = selectedDose === 'full' ? '1 Dose' : '1/2 Dose';
+        const stateLabel = selectedState === 'ready' ? 'Pronto a Comer' : 'Congelado';
+        
+        const hasDoses = product.hasDoses || product.category === 'Pronto para Comer';
+        const allowState = product.allowStateSelection || product.category === 'Pronto para Comer';
+        
+        let customName = product.name;
+        if (hasDoses) customName += ` (${doseLabel})`;
+        if (allowState) customName += ` - ${stateLabel}`;
+
+        const prontoProduct = {
+          ...product,
+          id: `${product.id}-${hasDoses ? selectedDose : 'none'}-${allowState ? selectedState : 'none'}`,
+          name: customName,
+          price: currentPrice
+        };
+        addToCart(prontoProduct, quantity);
       } else {
         addToCart(product, quantity);
       }
@@ -345,7 +394,7 @@ const ProductDetail: React.FC = () => {
                 {product.category === 'Especiais' ? (
                   <span className="text-sm">Sob Orçamento</span>
                 ) : (
-                  <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs font-normal opacity-80">/Kg</span>}</>
+                  <>€{currentPrice.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs font-normal opacity-80">/Kg</span>}</>
                 )}
               </span>
             </div>
@@ -367,7 +416,7 @@ const ProductDetail: React.FC = () => {
                 {product.category === 'Especiais' ? (
                   'Sob Orçamento'
                 ) : (
-                  <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm font-normal opacity-80">/Kg</span>}</>
+                  <>€{currentPrice.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-sm font-normal opacity-80">/Kg</span>}</>
                 )}
               </span>
             </div>
@@ -394,6 +443,72 @@ const ProductDetail: React.FC = () => {
                 <p className="text-purple-800 text-sm">
                   <strong>✨ Produto Especial:</strong> Este produto é personalizado de acordo com as suas preferências. Contacte-nos para um orçamento à medida.
                 </p>
+              </div>
+            )}
+            
+            {/* Opções de Dose e Estado para Pronto para Comer */}
+            {isProntoParaComer && !isPackSalgados && (
+              <div className="space-y-6 mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                {(product.hasDoses || product.category === 'Pronto para Comer') && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Escolha a Dose</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={() => setSelectedDose('full')}
+                        className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${
+                          selectedDose === 'full' 
+                            ? 'border-gold-500 bg-gold-50 text-gold-700' 
+                            : 'border-white bg-white text-gray-400 hover:border-gray-200'
+                        }`}
+                      >
+                        1 Dose
+                      </button>
+                      <button
+                        onClick={() => setSelectedDose('half')}
+                        className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${
+                          selectedDose === 'half' 
+                            ? 'border-gold-500 bg-gold-50 text-gold-700' 
+                            : 'border-white bg-white text-gray-400 hover:border-gray-200'
+                        }`}
+                      >
+                        Meia Dose
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {(product.allowStateSelection || product.category === 'Pronto para Comer') && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Como deseja receber?</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={() => setSelectedState('ready')}
+                        className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${
+                          selectedState === 'ready' 
+                            ? 'border-gold-500 bg-gold-50 text-gold-700' 
+                            : 'border-white bg-white text-gray-400 hover:border-gray-200'
+                        }`}
+                      >
+                        🍽️ Pronto a Comer
+                      </button>
+                      <button
+                        onClick={() => setSelectedState('frozen')}
+                        className={`py-3 px-4 rounded-xl border-2 font-bold transition-all ${
+                          selectedState === 'frozen' 
+                            ? 'border-gold-500 bg-gold-50 text-gold-700' 
+                            : 'border-white bg-white text-gray-400 hover:border-gray-200'
+                        }`}
+                      >
+                        ❄️ Congelado
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Preço da seleção:</span>
+                  <span className="text-xl font-bold text-gold-700">€{currentPrice.toFixed(2)}</span>
+                </div>
               </div>
             )}
             

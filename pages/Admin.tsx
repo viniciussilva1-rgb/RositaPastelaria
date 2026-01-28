@@ -240,10 +240,24 @@ const Admin: React.FC = () => {
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [isEditingProduct, setIsEditingProduct] = useState(false);
-  const emptyProduct: Product = { id: '', name: '', description: '', price: 0, image: '', category: categories[0] || 'Salgados' };
-  const [productForm, setProductForm] = useState<Product>(emptyProduct);
+  const emptyProduct: Product = { 
+    id: '', 
+    name: '', 
+    description: '', 
+    price: 0, 
+    image: '', 
+    category: categories[0] || 'Salgados',
+    hasDoses: false,
+    priceFullDose: 0,
+    priceHalfDose: 0,
+    allowStateSelection: false,
+    priceReady: 0,
+    priceFrozen: 0,
+    priceFullDoseReady: 0,
+    priceHalfDoseReady: 0,
+    priceFullDoseFrozen: 0,
+    priceHalfDoseFrozen: 0
+  };
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -2282,6 +2296,162 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                   className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gold-400 outline-none resize-none"
                   placeholder="Descreva o produto de forma apelativa..."
                 />
+              </div>
+
+              {/* Opções de Dose e Estado (Especial para Pronto para Comer ou ativação manual) */}
+              <div className="space-y-4 p-5 bg-gray-50 rounded-2xl border border-gray-200">
+                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                  <Package size={20} className="text-gold-600" />
+                  Opções Avançadas e Preços por Dose/Estado
+                </h4>
+                
+                <div className="flex flex-wrap gap-6 mb-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only"
+                        checked={productForm.hasDoses || productForm.category === 'Pronto para Comer'}
+                        onChange={e => setProductForm({...productForm, hasDoses: e.target.checked})}
+                      />
+                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.hasDoses || productForm.category === 'Pronto para Comer' ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.hasDoses || productForm.category === 'Pronto para Comer' ? 'translate-x-6' : ''}`}></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Ativar 1 Dose / Meia Dose</span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only"
+                        checked={productForm.allowStateSelection || productForm.category === 'Pronto para Comer'}
+                        onChange={e => setProductForm({...productForm, allowStateSelection: e.target.checked})}
+                      />
+                      <div className={`w-12 h-6 rounded-full transition-colors ${productForm.allowStateSelection || productForm.category === 'Pronto para Comer' ? 'bg-gold-500' : 'bg-gray-300'}`}></div>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${productForm.allowStateSelection || productForm.category === 'Pronto para Comer' ? 'translate-x-6' : ''}`}></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">Ativar Congelado / Pronto a Comer</span>
+                  </label>
+                </div>
+
+                {(productForm.hasDoses || productForm.allowStateSelection || productForm.category === 'Pronto para Comer') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    {/* Caso tenha ambos (Doses e Estados) */}
+                    {(productForm.hasDoses && productForm.allowStateSelection) || productForm.category === 'Pronto para Comer' ? (
+                      <>
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Preços: Pronto a Comer</p>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">1 Dose (Pronto) (€)</label>
+                            <div className="relative">
+                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input 
+                                type="number" step="0.01"
+                                value={productForm.priceFullDoseReady || ''}
+                                onChange={e => setProductForm({...productForm, priceFullDoseReady: parseFloat(e.target.value) || 0})}
+                                className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Meia Dose (Pronto) (€)</label>
+                            <div className="relative">
+                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input 
+                                type="number" step="0.01"
+                                value={productForm.priceHalfDoseReady || ''}
+                                onChange={e => setProductForm({...productForm, priceHalfDoseReady: parseFloat(e.target.value) || 0})}
+                                className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Preços: Congelado</p>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">1 Dose (Congelado) (€)</label>
+                            <div className="relative">
+                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input 
+                                type="number" step="0.01"
+                                value={productForm.priceFullDoseFrozen || ''}
+                                onChange={e => setProductForm({...productForm, priceFullDoseFrozen: parseFloat(e.target.value) || 0})}
+                                className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Meia Dose (Congelado) (€)</label>
+                            <div className="relative">
+                              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input 
+                                type="number" step="0.01"
+                                value={productForm.priceHalfDoseFrozen || ''}
+                                onChange={e => setProductForm({...productForm, priceHalfDoseFrozen: parseFloat(e.target.value) || 0})}
+                                className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : productForm.hasDoses ? (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Preço 1 Dose (€)</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.priceFullDose || ''}
+                              onChange={e => setProductForm({...productForm, priceFullDose: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Preço Meia Dose (€)</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.priceHalfDose || ''}
+                              onChange={e => setProductForm({...productForm, priceHalfDose: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Preço Pronto a Comer (€)</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.priceReady || ''}
+                              onChange={e => setProductForm({...productForm, priceReady: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Preço Congelado (€)</label>
+                          <div className="relative">
+                            <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                              type="number" step="0.01"
+                              value={productForm.priceFrozen || ''}
+                              onChange={e => setProductForm({...productForm, priceFrozen: parseFloat(e.target.value) || 0})}
+                              className="w-full border border-gray-200 rounded-lg p-2.5 pl-8 text-sm focus:ring-2 focus:ring-gold-400 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <ImageUpload

@@ -114,10 +114,15 @@ const Menu: React.FC = () => {
   };
 
   const handleProductAction = (product: any) => {
+    const hasOptions = product.category === 'Pronto para Comer' || 
+                      product.category === 'Pack Salgados' || 
+                      product.hasDoses || 
+                      product.allowStateSelection;
+
     if (product.category === 'Especiais') {
       setQuoteModal({ isOpen: true, product });
-    } else if (product.category === 'Pack Salgados') {
-      // Redirecionar para página de detalhes para escolher as unidades
+    } else if (hasOptions) {
+      // Redirecionar para página de detalhes para escolher as opções (quantidades, doses, estados)
       navigate(`/produto/${product.id}`);
     } else {
       addToCart(product);
@@ -191,7 +196,10 @@ const Menu: React.FC = () => {
                      {product.category === 'Especiais' ? (
                        <span className="text-sm">Sob Orçamento</span>
                      ) : (
-                       <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal">/Kg</span>}</>
+                       <>
+                        {(product.category === 'Pronto para Comer' || product.hasDoses || product.allowStateSelection) && <span className="text-xs font-normal mr-1">Desde</span>}
+                        €{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal">/Kg</span>}
+                       </>
                      )}
                    </span>
                 </div>

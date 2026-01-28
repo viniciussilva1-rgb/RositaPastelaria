@@ -5,6 +5,18 @@ export interface Product {
   price: number;
   image: string;
   category: string;
+  // Doses and States options
+  hasDoses?: boolean;
+  priceFullDose?: number;
+  priceHalfDose?: number;
+  allowStateSelection?: boolean;
+  priceReady?: number;
+  priceFrozen?: number;
+  // Matrix prices for items with both
+  priceFullDoseReady?: number;
+  priceHalfDoseReady?: number;
+  priceFullDoseFrozen?: number;
+  priceHalfDoseFrozen?: number;
 }
 
 export interface CartItem extends Product {
