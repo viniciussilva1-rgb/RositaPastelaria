@@ -2529,7 +2529,11 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                       <label className="block text-sm font-medium text-gray-700 mb-2">Produtos permitidos neste Pack (Sabores)</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-100 rounded-lg custom-scrollbar">
                         {products
-                          .filter(p => !p.isDynamicPack && p.category !== 'Especiais' && p.id !== productForm.id)
+                          .filter(p => 
+                            !p.isDynamicPack && 
+                            p.category === 'Doces' && 
+                            p.id !== productForm.id
+                          )
                           .map(p => (
                             <label key={p.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors text-sm">
                               <input 
