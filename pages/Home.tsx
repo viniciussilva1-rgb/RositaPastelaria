@@ -312,17 +312,21 @@ const Home: React.FC = () => {
                      </span>
                   </div>
                 </div>
-                <div className="text-center">
-                  <Link to={`/produto/${product.id}`}>
-                    <h3 className="text-xl font-serif text-gray-900 mb-2 group-hover:text-gold-600 transition-colors">{product.name}</h3>
+                <div className="text-center flex flex-col items-center">
+                  <Link to={`/produto/${product.id}`} className="mb-4 block h-14 flex items-center justify-center">
+                    <h3 className="text-lg md:text-xl font-serif text-gray-900 group-hover:text-gold-600 transition-colors line-clamp-2 leading-tight px-2">
+                      {product.name}
+                    </h3>
                   </Link>
-                  <span className="inline-block bg-gold-600 text-white font-bold px-4 py-1.5 rounded-full text-base">
-                    {product.category === 'Especiais' ? (
-                      'Sob Orçamento'
-                    ) : (
-                      <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal">/Kg</span>}</>
-                    )}
-                  </span>
+                  <div className="mt-auto">
+                    <span className="inline-block bg-gold-600 text-white font-bold px-5 py-2 rounded-full text-base whitespace-nowrap shadow-sm">
+                      {product.category === 'Especiais' ? (
+                        'Sob Orçamento'
+                      ) : (
+                        <>€{product.price.toFixed(2)}{product.category === 'Bolos de Aniversário' && <span className="text-xs text-gold-100 font-normal ml-0.5">/Kg</span>}</>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
