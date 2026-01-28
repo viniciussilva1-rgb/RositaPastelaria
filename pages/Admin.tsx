@@ -264,7 +264,8 @@ const Admin: React.FC = () => {
     allowedProducts: [],
     isMultiSizePack: false,
     price50: 0,
-    price100: 0
+    price100: 0,
+    customFlavors: []
   };
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
@@ -2577,15 +2578,33 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Produtos permitidos neste Pack (Sabores)</label>
+                      <div className="mb-2">
+                        <input 
+                          type="text"
+                          placeholder="Procurar sabores (ex: brigadeiro)..."
+                          className="w-full text-xs p-2 border border-gray-200 rounded mb-2 outline-none focus:ring-1 focus:ring-amber-400"
+                          onChange={(e) => {
+                            const val = e.target.value.toLowerCase();
+                            const labels = document.querySelectorAll('.flavor-item');
+                            labels.forEach((label: any) => {
+                              const text = label.textContent.toLowerCase();
+                              label.style.display = text.includes(val) ? 'flex' : 'none';
+                            });
+                          }}
+                        />
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-100 rounded-lg custom-scrollbar">
                         {products
-                          .filter(p => 
-                            !p.isDynamicPack && 
-                            p.category === 'Doces' && 
-                            p.id !== productForm.id
-                          )
+                          .filter(p => !p.isDynamicPack && p.id !== productForm.id)
+                          .sort((a, b) => {
+                            const aIsDoces = a.category.toLowerCase().includes('doce') || a.category === productForm.category;
+                            const bIsDoces = b.category.toLowerCase().includes('doce') || b.category === productForm.category;
+                            if (aIsDoces && !bIsDoces) return -1;
+                            if (!aIsDoces && bIsDoces) return 1;
+                            return a.name.localeCompare(b.name);
+                          })
                           .map(p => (
-                            <label key={p.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors text-sm">
+                            <label key={p.id} className="flavor-item flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer transition-colors text-sm">
                               <input 
                                 type="checkbox"
                                 checked={(productForm.allowedProducts || []).includes(p.id)}
@@ -2603,7 +2622,67 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                             </label>
                           ))}
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-2 italic">Dica: Selecione os produtos que o cliente poderá escolher para compor o pack.</p>
+                      <p className="text-[10px] text-gray-400 mt-2 italic">Dica: Selecione os produtos catalogados ou adicione novos abaixo.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Sabores Específicos (Apenas Texto)</label>
+                      <div className="flex gap-2 mb-4">
+                        <input 
+                          type="text" 
+                          id="new-flavor-input"
+                          placeholder="Ex: Brigadeiro, Coco, Leite Ninho..."
+                          className="flex-1 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const input = e.currentTarget;
+                              const val = input.value.trim();
+                              if (val) {
+                                const current = productForm.customFlavors || [];
+                                if (!current.includes(val)) {
+                                  setProductForm({...productForm, customFlavors: [...current, val]});
+                                  input.value = '';
+                                }
+                              }
+                            }
+                          }}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById('new-flavor-input') as HTMLInputElement;
+                            const val = input.value.trim();
+                            if (val) {
+                              const current = productForm.customFlavors || [];
+                              if (!current.includes(val)) {
+                                setProductForm({...productForm, customFlavors: [...current, val]});
+                                input.value = '';
+                              }
+                            }
+                          }}
+                          className="bg-amber-600 text-white px-4 py-3 rounded-lg hover:bg-amber-700 transition-colors"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+
+                      {productForm.customFlavors && productForm.customFlavors.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+                          {productForm.customFlavors.map((flavor, idx) => (
+                            <span key={idx} className="bg-white border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-sm font-medium">
+                              {flavor}
+                              <button 
+                                type="button"
+                                onClick={() => setProductForm({...productForm, customFlavors: productForm.customFlavors?.filter((_, i) => i !== idx)})}
+                                className="hover:text-red-500 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

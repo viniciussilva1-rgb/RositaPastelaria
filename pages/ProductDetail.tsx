@@ -216,8 +216,31 @@ const ProductDetail: React.FC = () => {
 
   // Obter produtos permitidos para o pack dinâmico
   const allowedPackProducts = useMemo(() => {
-    if (!product?.allowedProducts || !products) return [];
-    return products.filter(p => product.allowedProducts?.includes(p.id));
+    let baseProducts: Product[] = [];
+    
+    // 1. Produtos já registados selecionados pelo admin
+    if (product?.allowedProducts && product.allowedProducts.length > 0) {
+      baseProducts = products.filter(p => product.allowedProducts?.includes(p.id));
+    } else if (products) {
+      // Fallback: produtos da categoria Doces
+      baseProducts = products.filter(p => 
+        !p.isDynamicPack && 
+        p.id !== product?.id &&
+        (p.category === 'Doces' || p.category === product?.category)
+      );
+    }
+
+    // 2. Sabores customizados (apenas texto) convertidos em "produtos virtuais"
+    const virtualProducts: Product[] = (product?.customFlavors || []).map((flavor, index) => ({
+      id: `virtual-${index}`,
+      name: flavor,
+      description: 'Sabor exclusivo do pack',
+      price: 0,
+      image: product?.image || '', // Usa a imagem do pack como fallback
+      category: product?.category || 'Doces'
+    }));
+
+    return [...baseProducts, ...virtualProducts];
   }, [product, products]);
 
   // Obter salgados disponíveis para seleção de sabores no pack salgados

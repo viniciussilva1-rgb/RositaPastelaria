@@ -25,6 +25,7 @@ export interface Product {
   isMultiSizePack?: boolean;
   price50?: number;
   price100?: number;
+  customFlavors?: string[]; // Simple list of flavors that don't need to be products
 }
 
 export interface CartItem extends Product {
