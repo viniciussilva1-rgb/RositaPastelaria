@@ -212,19 +212,6 @@ const Cart: React.FC = () => {
       }
     }
     
-    // Preparar mensagem para WhatsApp
-    const orderItems = cart.map(item => `- ${item.quantity}x ${item.name}`).join('%0A');
-    const message = `*Nova Encomenda - Rosita Pastelaria*%0A%0A` +
-      `*Cliente:* ${user?.name || 'Não identificado'}%0A` +
-      `*Itens:*%0A${orderItems}%0A%0A` +
-      `*Total:* €${totalWithDelivery.toFixed(2)}%0A` +
-      `*Tipo:* ${deliveryType === 'delivery' ? 'Entrega' : 'Levantamento'}%0A` +
-      `*Data:* ${selectedDate}%0A` +
-      `*Horário:* ${selectedTime}%0A` +
-      `*Pagamento:* ${paymentMethod}`;
-
-    const whatsappUrl = `https://wa.me/351918896857?text=${message}`;
-
     placeOrder(paymentMethod, {
       type: deliveryType,
       date: selectedDate,
@@ -235,9 +222,6 @@ const Cart: React.FC = () => {
       nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined
     });
 
-    // Abrir WhatsApp para notificação
-    window.open(whatsappUrl, '_blank');
-    
     setStep('success');
   };
 

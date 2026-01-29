@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useShop } from '../context';
 import { 
   Package, LogOut, Plus, Edit2, Trash2, X, Save, 
@@ -268,6 +268,30 @@ const Admin: React.FC = () => {
     customFlavors: []
   };
   const [productForm, setProductForm] = useState<Product>(emptyProduct);
+
+  // Notificações sonoras para novos pedidos
+  const prevOrdersCount = useRef(orders.length);
+  
+  useEffect(() => {
+    if (orders.length > prevOrdersCount.current) {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => console.log('Erro ao tocar áudio:', e));
+      
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Novo Pedido!", {
+          body: `Você recebeu um novo pedido! Verifique a aba de pedidos.`,
+          icon: "/favicon.ico"
+        });
+      }
+    }
+    prevOrdersCount.current = orders.length;
+  }, [orders]);
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
   const [productSavedSuccess, setProductSavedSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
