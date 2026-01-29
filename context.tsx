@@ -490,7 +490,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
-      user, firebaseUser, login, adminLogin, logout,
+      user, firebaseUser, login, loginWithEmail, register, adminLogin, logout,
       orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
       isOrderingEnabled, getClosedDayName, isDateClosed,
       isLoading, authLoading
