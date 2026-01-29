@@ -413,6 +413,9 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const newOrder: Order = {
       id: `CMD-${Date.now().toString().slice(-6)}`,
+      userId: user?.id,
+      customerName: user?.name,
+      customerEmail: user?.email,
       date: new Date().toLocaleDateString('pt-PT'),
       items: [...cart],
       total: totalWithDelivery,
@@ -431,7 +434,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await firestoreHelpers.set(COLLECTIONS.ORDERS, newOrder);
     clearCart();
     console.log("Order placed:", newOrder);
-  }, [cart, cartTotal]);
+  }, [cart, cartTotal, user]);
 
   const updateOrder = useCallback(async (updatedOrder: Order) => {
     await firestoreHelpers.set(COLLECTIONS.ORDERS, updatedOrder);

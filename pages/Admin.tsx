@@ -886,7 +886,7 @@ const Admin: React.FC = () => {
                       {orders.slice(0, 5).map(order => (
                         <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                           <div>
-                            <p className="text-sm font-medium text-gray-800">#{order.id}</p>
+                            <p className="text-sm font-medium text-gray-800">#{order.id} {order.customerName && <span className="text-gray-500 font-normal">- {order.customerName}</span>}</p>
                             <p className="text-xs text-gray-500">{order.date}</p>
                           </div>
                           <div className="text-right">
@@ -1438,6 +1438,11 @@ const Admin: React.FC = () => {
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-3 mb-2">
                               <span className="font-bold text-lg text-gray-900">#{order.id}</span>
+                              {order.customerName && (
+                                <span className="text-gray-600 font-medium flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                  <Users size={14} /> {order.customerName}
+                                </span>
+                              )}
                               <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(order.status)}`}>
                                 {getStatusIcon(order.status)}
                                 {order.status}
