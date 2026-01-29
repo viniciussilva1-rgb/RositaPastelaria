@@ -445,8 +445,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       deliveryType: deliveryInfo.type,
       deliveryDate: deliveryInfo.date,
       deliveryTime: deliveryInfo.time,
-      deliveryAddress: deliveryInfo.address,
-      nif: deliveryInfo.nif
+      deliveryAddress: deliveryInfo.address || "",
+      nif: deliveryInfo.nif || ""
     };
 
     console.log("Saving order to Firebase...", newOrder);
