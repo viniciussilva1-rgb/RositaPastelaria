@@ -4,6 +4,8 @@ import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, 
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -140,6 +142,13 @@ export const authHelpers = {
   // Login with email and password
   async login(email: string, password: string): Promise<FirebaseUser> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  },
+
+  // Register with email, password and name
+  async register(email: string, password: string, name: string): Promise<FirebaseUser> {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName: name });
     return userCredential.user;
   },
 

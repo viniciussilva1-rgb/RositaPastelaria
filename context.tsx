@@ -51,6 +51,8 @@ interface ShopContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<boolean>;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   
@@ -365,6 +367,26 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Erro no login com Google:', error);
       alert('Não foi possível fazer login com o Google. Tente novamente.');
+    }
+  };
+
+  const loginWithEmail = async (email: string, password: string): Promise<boolean> => {
+    try {
+      await authHelpers.login(email, password);
+      return true;
+    } catch (error) {
+      console.error('Erro no login com email:', error);
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    try {
+      await authHelpers.register(email, password, name);
+      return true;
+    } catch (error) {
+      console.error('Erro no registo:', error);
+      throw error;
     }
   };
 

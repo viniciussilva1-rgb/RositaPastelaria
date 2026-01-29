@@ -4,13 +4,14 @@ import { Package, User as UserIcon, LogOut, RefreshCcw, Settings, Mail, Lock, Al
 import { useNavigate } from 'react-router-dom';
 
 const ClientArea: React.FC = () => {
-  const { user, login, adminLogin, logout, orders, authLoading } = useShop();
+  const { user, login, loginWithEmail, register, adminLogin, logout, orders, authLoading } = useShop();
   const navigate = useNavigate();
   
-  // Admin login states
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  // Auth view states
+  const [authMode, setAuthMode] = useState<'options' | 'login' | 'register' | 'admin'>('options');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,20 +40,48 @@ const ClientArea: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const success = await adminLogin(adminEmail, adminPassword);
+      const success = await adminLogin(email, password);
       if (!success) {
-        setLoginError('Email ou senha incorretos. Verifique suas credenciais.');
+        setLoginError('Apenas administradores podem aceder a esta área.');
       }
     } catch (error: any) {
+      console.error('Erro no login admin:', error);
+      setLoginError('Credenciais inválidas.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoading(true);
+    try {
+      await loginWithEmail(email, password);
+    } catch (error: any) {
       console.error('Erro no login:', error);
-      if (error?.code === 'auth/invalid-credential' || error?.code === 'auth/wrong-password') {
-        setLoginError('Email ou senha incorretos.');
-      } else if (error?.code === 'auth/user-not-found') {
-        setLoginError('Usuário não encontrado. Verifique o email.');
-      } else if (error?.code === 'auth/too-many-requests') {
-        setLoginError('Muitas tentativas. Aguarde um momento.');
+      setLoginError('Email ou senha incorretos.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name) {
+      setLoginError('Por favor insira o seu nome.');
+      return;
+    }
+    setLoginError('');
+    setIsLoading(true);
+    try {
+      await register(email, password, name);
+    } catch (error: any) {
+      console.error('Erro no registo:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        setLoginError('Este email já está em uso.');
       } else {
-        setLoginError('Erro ao fazer login. Tente novamente.');
+        setLoginError('Erro ao criar conta. Tente novamente.');
       }
     } finally {
       setIsLoading(false);
@@ -82,20 +111,33 @@ const ClientArea: React.FC = () => {
   // Login View
   if (!user) {
     return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
-          <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-6 text-gold-600">
-            <UserIcon size={32} />
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center px-4 py-20">
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gold-600">
+              <UserIcon size={32} />
+            </div>
+            <h2 className="text-2xl font-serif text-gray-800 mb-1">
+              {authMode === 'register' ? 'Criar Conta' : authMode === 'admin' ? 'Acesso Administrativo' : 'Bem-vindo à Rosita'}
+            </h2>
+            <p className="text-gray-500 text-sm">
+              {authMode === 'register' ? 'Junte-se a nós para encomendar facilmente.' : 'Inicie sessão para continuar.'}
+            </p>
           </div>
-          <h2 className="text-2xl font-serif text-gray-800 mb-2">Bem-vindo à Rosita</h2>
-          <p className="text-gray-500 mb-8">Faça login para aceder.</p>
+
+          {loginError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-6">
+              <AlertCircle size={16} />
+              {loginError}
+            </div>
+          )}
           
-          {!showAdminLogin ? (
-            <div className="space-y-3">
+          {authMode === 'options' ? (
+            <div className="space-y-4">
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded hover:bg-gray-50 transition-colors group disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded hover:bg-gray-50 transition-colors group disabled:opacity-50"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-gold-600 rounded-full animate-spin"></div>
@@ -109,103 +151,128 @@ const ClientArea: React.FC = () => {
 
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-gray-100"></div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Administração</span>
+                <div className="relative flex justify-center text-xs uppercase px-2 bg-white text-gray-400">
+                  ou
                 </div>
               </div>
 
               <button 
-                onClick={() => setShowAdminLogin(true)}
-                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded hover:bg-gold-600 transition-colors"
+                onClick={() => setAuthMode('login')}
+                className="w-full flex items-center justify-center gap-3 py-3 bg-white border border-gray-900 text-gray-900 rounded hover:bg-gray-50 transition-colors font-medium"
               >
-                <Settings size={18} />
-                <span className="font-medium">Entrar como Admin</span>
+                <Mail size={18} />
+                Entrar com Email
               </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <form onSubmit={handleAdminLogin} className="space-y-4">
-                {loginError && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                    <AlertCircle size={16} />
-                    {loginError}
-                  </div>
-                )}
-                
-                <div className="text-left">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="email"
-                      value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
-                      placeholder="admin@rosita.pt"
-                      required
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-left">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Senha
-                  </label>
-                  <div className="relative">
-                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      placeholder="••••••••••"
-                      required
-                      className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gold-400 focus:border-transparent outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded-lg hover:bg-gold-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      A verificar...
-                    </>
-                  ) : (
-                    <>
-                      <Lock size={18} />
-                      Entrar no Painel Admin
-                    </>
-                  )}
-                </button>
-              </form>
 
               <button 
-                onClick={() => {
-                  setShowAdminLogin(false);
-                  setAdminEmail('');
-                  setAdminPassword('');
-                  setLoginError('');
-                }}
-                className="text-sm text-gray-500 hover:text-gold-600 transition-colors"
+                onClick={() => setAuthMode('register')}
+                className="w-full text-sm text-gold-600 hover:text-gold-700 font-medium transition-colors"
               >
-                ← Voltar às opções de login
+                Não tem conta? Registe-se aqui
               </button>
+
+              <div className="pt-6 border-t border-gray-50">
+                <button 
+                  onClick={() => setAuthMode('admin')}
+                  className="w-full flex items-center justify-center gap-3 py-2 text-gray-400 hover:text-gray-600 transition-colors text-xs font-bold uppercase tracking-widest"
+                >
+                  <Settings size={14} /> Administração
+                </button>
+              </div>
             </div>
+          ) : (
+            <form onSubmit={authMode === 'login' ? handleEmailLogin : authMode === 'register' ? handleRegister : handleAdminLogin} className="space-y-4">
+              {authMode === 'register' && (
+                <div className="text-left">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                    Nome Completo
+                  </label>
+                  <div className="relative">
+                    <UserIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="O seu nome"
+                      required
+                      className="w-full pl-10 pr-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="text-left">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={authMode === 'admin' ? "admin@rosita.pt" : "exemplo@email.com"}
+                    required
+                    className="w-full pl-10 pr-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="text-left">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                  Senha
+                </label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-10 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-900 text-white rounded-lg hover:bg-gold-600 transition-colors disabled:opacity-50 font-bold uppercase tracking-widest text-xs"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <Lock size={14} />
+                    {authMode === 'login' ? 'Iniciar Sessão' : authMode === 'register' ? 'Criar Conta' : 'Entrar como Admin'}
+                  </>
+                )}
+              </button>
+
+              <div className="pt-4 text-center">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('options');
+                    setLoginError('');
+                    setPassword('');
+                  }}
+                  className="text-xs text-gray-400 hover:text-gold-600 transition-colors font-bold uppercase tracking-widest"
+                >
+                  ← Voltar às opções
+                </button>
+              </div>
+            </form>
           )}
         </div>
       </div>
