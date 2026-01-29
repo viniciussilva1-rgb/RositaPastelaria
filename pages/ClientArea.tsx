@@ -4,7 +4,7 @@ import { Package, User as UserIcon, LogOut, RefreshCcw, Settings, Mail, Lock, Al
 import { useNavigate } from 'react-router-dom';
 
 const ClientArea: React.FC = () => {
-  const { user, login, adminLogin, logout, orders } = useShop();
+  const { user, login, adminLogin, logout, orders, authLoading } = useShop();
   const navigate = useNavigate();
   
   // Admin login states
@@ -14,6 +14,17 @@ const ClientArea: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await login();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Redirect admin to admin panel
   useEffect(() => {
@@ -48,6 +59,17 @@ const ClientArea: React.FC = () => {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gold-200 border-t-gold-600 rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium font-serif italic">A carregar a sua área...</p>
+        </div>
+      </div>
+    );
+  }
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Pendente': return 'bg-yellow-100 text-yellow-800';
@@ -71,11 +93,18 @@ const ClientArea: React.FC = () => {
           {!showAdminLogin ? (
             <div className="space-y-3">
               <button 
-                onClick={login}
-                className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded hover:bg-gray-50 transition-colors group"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded hover:bg-gray-50 transition-colors group disabled:opacity-50"
               >
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                <span className="text-gray-700 font-medium group-hover:text-gray-900">Entrar como Cliente</span>
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-gold-600 rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                    <span className="text-gray-700 font-medium group-hover:text-gray-900">Entrar com Google</span>
+                  </>
+                )}
               </button>
 
               <div className="relative py-2">
@@ -187,21 +216,24 @@ const ClientArea: React.FC = () => {
   // CLIENT AREA VIEW
   // ----------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-cream-50 py-12">
+    <div className="min-h-screen bg-cream-50 pt-32 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div className="flex items-center gap-4">
-            <img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full border-2 border-gold-400" />
+            <div className="relative">
+              <img src={user.avatar} alt={user.name} className="w-20 h-20 rounded-full border-4 border-white shadow-sm" />
+              <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
+            </div>
             <div>
-              <h1 className="text-2xl font-serif text-gray-800">Olá, {user.name}</h1>
-              <p className="text-gray-500 text-sm">{user.email}</p>
+              <h1 className="text-3xl font-serif text-gray-900">Olá, {user.name}</h1>
+              <p className="text-gray-500 font-medium">{user.email}</p>
             </div>
           </div>
           <button 
             onClick={() => { logout(); navigate('/'); }}
-            className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:text-red-600 hover:border-red-100 hover:bg-red-50 transition-all text-sm font-bold uppercase tracking-wider shadow-sm"
           >
             <LogOut size={16} /> Terminar Sessão
           </button>
@@ -277,6 +309,15 @@ const ClientArea: React.FC = () => {
                     <p className="text-sm text-green-700 font-medium">Ativo</p>
                   </div>
                 </div>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <button 
+                  onClick={() => { logout(); navigate('/'); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100 transition-all text-xs font-bold uppercase tracking-widest"
+                >
+                  <LogOut size={14} /> Sair da Conta
+                </button>
               </div>
             </div>
 

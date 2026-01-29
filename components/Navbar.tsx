@@ -64,8 +64,12 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center justify-end space-x-6 w-1/3">
             <Link to="/blog" className={`text-sm uppercase tracking-widest transition-colors mr-4 ${linkClass('/blog')}`}>Histórias</Link>
             
-            <Link to={user ? "/cliente" : "/login"} className={`transition-colors ${iconClass}`}>
-              <User size={22} strokeWidth={1.5} />
+            <Link to={user ? "/cliente" : "/login"} className={`transition-colors flex items-center ${iconClass}`}>
+              {user ? (
+                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full border border-gold-400 group-hover:border-gold-500" />
+              ) : (
+                <User size={22} strokeWidth={1.5} />
+              )}
             </Link>
             <Link to="/carrinho" className={`relative transition-colors ${iconClass}`}>
               <ShoppingBag size={22} strokeWidth={1.5} />

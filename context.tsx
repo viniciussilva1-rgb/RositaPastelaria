@@ -50,7 +50,7 @@ interface ShopContextType {
   
   user: User | null;
   firebaseUser: FirebaseUser | null;
-  login: () => void;
+  login: () => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   
@@ -105,12 +105,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const unsubscribe = authHelpers.onAuthChange((fbUser) => {
       setFirebaseUser(fbUser);
-      if (fbUser && fbUser.email === ADMIN_EMAIL) {
+      if (fbUser) {
         setUser({
           id: fbUser.uid,
-          name: 'Rosita Admin',
-          email: fbUser.email,
-          isAdmin: true
+          name: fbUser.displayName || 'Cliente',
+          email: fbUser.email || '',
+          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.displayName || 'Cliente'}&background=D4AF37&color=fff`,
+          isAdmin: fbUser.email === ADMIN_EMAIL
         });
       } else {
         setUser(null);
@@ -358,15 +359,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   // Auth Actions
-  const login = () => {
-    // Login de cliente normal (não usado, mantido para compatibilidade)
-    setUser({
-      id: 'u12345',
-      name: 'Maria Silva',
-      email: 'maria.silva@gmail.com',
-      avatar: 'https://ui-avatars.com/api/?name=Maria+Silva&background=D4AF37&color=fff',
-      isAdmin: false
-    });
+  const login = async () => {
+    try {
+      await authHelpers.loginWithGoogle();
+    } catch (error) {
+      console.error('Erro no login com Google:', error);
+      alert('Não foi possível fazer login com o Google. Tente novamente.');
+    }
   };
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {

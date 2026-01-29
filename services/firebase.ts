@@ -6,6 +6,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   User as FirebaseUser
 } from "firebase/auth";
 
@@ -27,6 +29,12 @@ export const db = getFirestore(app);
 
 // Initialize Firebase Auth
 export const auth = getAuth(app);
+
+// Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 // Admin email (the only user allowed to edit)
 export const ADMIN_EMAIL = "rositapastelariaofc@gmail.com";
@@ -133,6 +141,12 @@ export const authHelpers = {
   async login(email: string, password: string): Promise<FirebaseUser> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
+  },
+
+  // Login with Google
+  async loginWithGoogle(): Promise<FirebaseUser> {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
   },
 
   // Logout
