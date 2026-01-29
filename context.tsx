@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS, BLOG_POSTS } from './constants';
 import { db, COLLECTIONS, firestoreHelpers, authHelpers, ADMIN_EMAIL, FirebaseUser } from './services/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 
 // Categorias iniciais
 const INITIAL_CATEGORIES = ['Bolos de Aniversário', 'Salgados', 'Salgados Congelados', 'Kits Festa', 'Doces', 'Bebidas', 'Sobremesas', 'Especiais', 'Pack Salgados'];
@@ -108,12 +108,13 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = authHelpers.onAuthChange((fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
+        const isAdmin = fbUser.email === ADMIN_EMAIL;
         setUser({
           id: fbUser.uid,
-          name: fbUser.displayName || 'Cliente',
+          name: isAdmin ? 'Admin Rosita' : (fbUser.displayName || 'Cliente'),
           email: fbUser.email || '',
-          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.displayName || 'Cliente'}&background=D4AF37&color=fff`,
-          isAdmin: fbUser.email === ADMIN_EMAIL
+          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.displayName || (isAdmin ? 'Admin' : 'Cliente')}&background=D4AF37&color=fff`,
+          isAdmin: isAdmin
         });
       } else {
         setUser(null);
@@ -131,44 +132,29 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
-        // Check if DB is already initialized by checking siteConfig
-        const configSnapshot = await onSnapshot(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), async (snapshot) => {
-          if (!snapshot.exists()) {
-            console.log('Firebase empty or first run, initializing with default data...');
-            
-            // Upload initial products
-            for (const product of INITIAL_PRODUCTS) {
-              await firestoreHelpers.set(COLLECTIONS.PRODUCTS, product);
-            }
-            
-            // Upload initial categories
-            await setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: INITIAL_CATEGORIES });
-            
-            // Upload initial site config
-            await setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), INITIAL_SITE_CONFIG);
-            
-            // Upload initial testimonials
-            for (const testimonial of INITIAL_TESTIMONIALS) {
-              await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
-            }
-            
-            // Upload initial blog posts
-            for (const post of BLOG_POSTS) {
-              await firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post);
-            }
-            
-            console.log('Firebase initialized with default data!');
-          }
-          setIsInitialized(true);
-        }, (err) => {
-          console.error('Error checking initialization:', err);
-          setIsInitialized(true); // Proceed anyway to show local data if FB fails
-        });
-
-        return () => configSnapshot();
+        const configRef = doc(db, COLLECTIONS.SITE_CONFIG, 'main');
+        const snapshot = await getDoc(configRef);
+        
+        if (!snapshot.exists()) {
+          console.log('Firebase empty or first run, initializing with default data...');
+          
+          // Upload initial products in background (don't block for everything)
+          const uploadPromises = [
+            ...INITIAL_PRODUCTS.map(product => firestoreHelpers.set(COLLECTIONS.PRODUCTS, product)),
+            setDoc(doc(db, COLLECTIONS.CATEGORIES, 'main'), { list: INITIAL_CATEGORIES }),
+            setDoc(doc(db, COLLECTIONS.SITE_CONFIG, 'main'), INITIAL_SITE_CONFIG),
+            ...INITIAL_TESTIMONIALS.map(testimonial => firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial)),
+            ...BLOG_POSTS.map(post => firestoreHelpers.set(COLLECTIONS.BLOG_POSTS, post))
+          ];
+          
+          await Promise.all(uploadPromises);
+          console.log('Firebase initialized with default data!');
+        }
+        setIsInitialized(true);
       } catch (error) {
         console.error('Error initializing Firebase:', error);
-        setIsInitialized(true);
+        setIsInitialized(true); // Proceed anyway to allow local operation
+      } finally {
         setIsLoading(false);
       }
     };
@@ -221,10 +207,16 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Orders listener
     const unsubOrders = firestoreHelpers.subscribe<Order>(COLLECTIONS.ORDERS, (data) => {
+      console.log(`Received ${data.length} orders from Firebase`);
       setOrders(data.sort((a, b) => {
         // Sort by date descending
-        return new Date(b.date.split('/').reverse().join('-')).getTime() - 
-               new Date(a.date.split('/').reverse().join('-')).getTime();
+        try {
+          const dateB = new Date(b.date.split('/').reverse().join('-')).getTime();
+          const dateA = new Date(a.date.split('/').reverse().join('-')).getTime();
+          return dateB - dateA;
+        } catch (e) {
+          return 0;
+        }
       }));
     });
     unsubscribes.push(unsubOrders);
@@ -432,11 +424,16 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const deliveryFee = deliveryInfo.deliveryFee || 0;
     const totalWithDelivery = cartTotal + deliveryFee;
     
+    // Identificar o cliente atual da melhor forma possível
+    const currentUserId = user?.id || firebaseUser?.uid || null;
+    const currentCustomerName = user?.name || firebaseUser?.displayName || 'Cliente';
+    const currentCustomerEmail = user?.email || firebaseUser?.email || '';
+
     const newOrder: Order = {
       id: `CMD-${Date.now().toString().slice(-6)}`,
-      userId: user?.id,
-      customerName: user?.name,
-      customerEmail: user?.email,
+      userId: currentUserId as string, // Cast para string mesmo se null para manter o tipo, Firebase aceita null
+      customerName: currentCustomerName,
+      customerEmail: currentCustomerEmail,
       date: new Date().toLocaleDateString('pt-PT'),
       items: [...cart],
       total: totalWithDelivery,
@@ -452,10 +449,16 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       nif: deliveryInfo.nif
     };
 
-    await firestoreHelpers.set(COLLECTIONS.ORDERS, newOrder);
-    clearCart();
-    console.log("Order placed:", newOrder);
-  }, [cart, cartTotal, user]);
+    console.log("Saving order to Firebase...", newOrder);
+    try {
+      await firestoreHelpers.set(COLLECTIONS.ORDERS, newOrder);
+      clearCart();
+      console.log("Order saved successfully!");
+    } catch (error) {
+      console.error("Error saving order:", error);
+      throw error;
+    }
+  }, [cart, cartTotal, user, firebaseUser]);
 
   const updateOrder = useCallback(async (updatedOrder: Order) => {
     await firestoreHelpers.set(COLLECTIONS.ORDERS, updatedOrder);

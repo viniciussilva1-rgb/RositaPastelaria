@@ -196,7 +196,7 @@ const Cart: React.FC = () => {
     return cartTotal;
   }, [cartTotal, deliveryType, deliveryCalc]);
 
-  const submitOrder = (e: React.FormEvent) => {
+  const submitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentMethod) {
       alert("Por favor selecione um método de pagamento.");
@@ -212,17 +212,24 @@ const Cart: React.FC = () => {
       }
     }
     
-    placeOrder(paymentMethod, {
-      type: deliveryType,
-      date: selectedDate,
-      time: selectedTime,
-      address: deliveryType === 'delivery' ? fullDeliveryAddress : undefined,
-      deliveryFee: deliveryCalc?.deliveryFee || 0,
-      distance: deliveryCalc?.distance || 0,
-      nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined
-    });
-
-    setStep('success');
+    setIsLoading(true);
+    try {
+      await placeOrder(paymentMethod, {
+        type: deliveryType,
+        date: selectedDate,
+        time: selectedTime,
+        address: deliveryType === 'delivery' ? fullDeliveryAddress : undefined,
+        deliveryFee: deliveryCalc?.deliveryFee || 0,
+        distance: deliveryCalc?.distance || 0,
+        nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined
+      });
+      setStep('success');
+    } catch (error) {
+      console.error("Erro ao processar pedido:", error);
+      alert("Houve um erro ao processar o seu pedido. Por favor, tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {

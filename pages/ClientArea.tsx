@@ -6,6 +6,10 @@ import { useNavigate } from 'react-router-dom';
 const ClientArea: React.FC = () => {
   const { user, login, loginWithEmail, register, adminLogin, logout, orders, authLoading } = useShop();
   const navigate = useNavigate();
+
+  const userOrders = React.useMemo(() => {
+    return orders.filter(order => order.userId === user?.id);
+  }, [orders, user]);
   
   // Auth view states
   const [authMode, setAuthMode] = useState<'options' | 'login' | 'register' | 'admin'>('options');
@@ -314,12 +318,12 @@ const ClientArea: React.FC = () => {
               <Package size={20} className="text-gold-600" /> Histórico de Encomendas
             </h2>
 
-            {orders.length === 0 ? (
+            {userOrders.length === 0 ? (
               <div className="bg-white p-8 rounded-lg shadow-sm text-center">
                 <p className="text-gray-500">Ainda não tem encomendas registadas.</p>
               </div>
             ) : (
-              orders.map(order => (
+              userOrders.map(order => (
                 <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                   <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <div>
