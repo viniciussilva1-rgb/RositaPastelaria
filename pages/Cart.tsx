@@ -37,6 +37,7 @@ const Cart: React.FC = () => {
   // Delivery calculation states
   const [deliveryCalc, setDeliveryCalc] = useState<DeliveryCalculation | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [addressVerified, setAddressVerified] = useState(false);
 
   // NIF states (fatura com contribuinte)
