@@ -44,6 +44,18 @@ const Cart: React.FC = () => {
   const [wantsNIF, setWantsNIF] = useState(false);
   const [nif, setNIF] = useState('');
 
+  // Estados para contacto do checkout
+  const [checkoutPhone, setCheckoutPhone] = useState(user?.phone || '');
+  const [checkoutName, setCheckoutName] = useState(user ? `${user.name} ${user.surname || ''}`.trim() : '');
+
+  // Atualizar nomes ao mudar de passo ou carregar utilizador
+  useEffect(() => {
+    if (user) {
+      if (!checkoutPhone && user.phone) setCheckoutPhone(user.phone);
+      if (!checkoutName) setCheckoutName(`${user.name} ${user.surname || ''}`.trim());
+    }
+  }, [user]);
+
   const deliveryConfig = getDeliveryConfig();
 
   // Full delivery address
@@ -204,6 +216,16 @@ const Cart: React.FC = () => {
       return;
     }
     
+    // Validar Contactos Obrigatórios
+    if (!checkoutName.trim()) {
+      alert("Por favor indique o seu nome para a encomenda.");
+      return;
+    }
+    if (!checkoutPhone.trim() || checkoutPhone.trim().length < 9) {
+      alert("Por favor indique um número de contacto válido (mínimo 9 dígitos).");
+      return;
+    }
+    
     // Validar NIF se o cliente quer fatura com contribuinte
     if (wantsNIF && nif) {
       const nifClean = nif.replace(/\s/g, '');
@@ -222,7 +244,9 @@ const Cart: React.FC = () => {
         address: deliveryType === 'delivery' ? fullDeliveryAddress : undefined,
         deliveryFee: deliveryCalc?.deliveryFee || 0,
         distance: deliveryCalc?.distance || 0,
-        nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined
+        nif: wantsNIF && nif ? nif.replace(/\s/g, '') : undefined,
+        customerName: checkoutName,
+        customerPhone: checkoutPhone
       });
       setStep('success');
     } catch (error) {
@@ -941,6 +965,38 @@ const Cart: React.FC = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider text-sm">Pagamento</h3>
                 
                 <form onSubmit={submitOrder} className="space-y-6">
+                  {/* Dados de Contacto Obrigatórios */}
+                  <div className="p-4 bg-gold-50/50 rounded-xl border border-gold-100 space-y-4">
+                    <h4 className="font-bold text-gold-800 text-xs uppercase tracking-widest flex items-center gap-2">
+                       <UserIcon size={14} /> Contacto para a Encomenda
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nome Completo</label>
+                      <input 
+                        type="text"
+                        value={checkoutName}
+                        onChange={(e) => setCheckoutName(e.target.value)}
+                        required
+                        placeholder="Nome para a entrega"
+                        className="w-full px-4 py-2 bg-white border border-gold-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none text-sm font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Telemóvel / WhatsApp</label>
+                      <input 
+                        type="tel"
+                        value={checkoutPhone}
+                        onChange={(e) => setCheckoutPhone(e.target.value)}
+                        required
+                        placeholder="9xx xxx xxx"
+                        className="w-full px-4 py-2 bg-white border border-gold-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none text-sm font-medium"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1 italic">Necessário para coordenar a entrega.</p>
+                    </div>
+                  </div>
+
                   <div>
                     <h4 className="font-bold text-gray-700 mb-3 text-sm">Método de Pagamento</h4>
                     <p className="text-xs text-gray-500 mb-3">O pagamento será realizado fora da plataforma.</p>

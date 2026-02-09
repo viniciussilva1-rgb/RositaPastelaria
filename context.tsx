@@ -379,7 +379,28 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Auth Actions
   const login = async () => {
     try {
-      await authHelpers.loginWithGoogle();
+      const fbUser = await authHelpers.loginWithGoogle();
+      
+      // Ao entrar com Google, verificar se o utilizador já existe no Firestore
+      const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, fbUser.uid));
+      
+      if (!userDoc.exists()) {
+        const nameParts = (fbUser.displayName || '').split(' ');
+        const name = nameParts[0] || 'Cliente';
+        const surname = nameParts.slice(1).join(' ') || '';
+        
+        const userData: User = {
+          id: fbUser.uid,
+          name: name,
+          surname: surname,
+          email: fbUser.email || '',
+          phone: '',
+          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'Cliente')}&background=D4AF37&color=fff`,
+          isAdmin: false
+        };
+        
+        await setDoc(doc(db, COLLECTIONS.USERS, fbUser.uid), userData);
+      }
     } catch (error) {
       console.error('Erro no login com Google:', error);
       alert('Não foi possível fazer login com o Google. Tente novamente.');
@@ -455,7 +476,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .map(order => order.deliveryTime);
   };
 
-  const placeOrder = useCallback(async (paymentMethod: string, deliveryInfo: DeliveryInfo) => {
+  const placeOrder = useCallback(async (paymentMethod: string, deliveryInfo: DeliveryInfo & { customerName?: string, customerPhone?: string }) => {
     if (cart.length === 0) return;
     
     const deliveryFee = deliveryInfo.deliveryFee || 0;
@@ -463,9 +484,9 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Identificar o cliente atual da melhor forma possível
     const currentUserId = user?.id || firebaseUser?.uid || null;
-    const currentCustomerName = user ? `${user.name} ${user.surname || ''}`.trim() : (firebaseUser?.displayName || 'Cliente');
+    const currentCustomerName = deliveryInfo.customerName || (user ? `${user.name} ${user.surname || ''}`.trim() : (firebaseUser?.displayName || 'Cliente'));
     const currentCustomerEmail = user?.email || firebaseUser?.email || '';
-    const currentCustomerPhone = user?.phone || '';
+    const currentCustomerPhone = deliveryInfo.customerPhone || user?.phone || '';
 
     const newOrder: Order = {
       id: `CMD-${Date.now().toString().slice(-6)}`,
