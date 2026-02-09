@@ -4,7 +4,7 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
   hero: {
     title: "A Alma da Sua Festa",
     subtitle: "Especialistas em bolos de aniversário personalizados e nos melhores salgados para os seus eventos. Tornamos cada celebração inesquecível.",
-    image: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?q=80&w=2000&auto=format&fit=crop",
+    image: "https://i.pinimg.com/736x/f8/99/35/f89935e68b2c78ab04e366a9e2cebafd.jpg",
     buttonText: "Encomendar para Festa"
   },
   promoBanner: {
