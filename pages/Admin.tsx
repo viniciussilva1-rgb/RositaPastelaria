@@ -230,12 +230,13 @@ const Admin: React.FC = () => {
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
     blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
     updateOrder, deleteOrder,
-    categories, addCategory, updateCategory, deleteCategory
+    categories, addCategory, updateCategory, deleteCategory,
+    allUsers
   } = useShop();
   const navigate = useNavigate();
 
   // Tab States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'blog' | 'site'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'blog' | 'site' | 'customers'>('dashboard');
   
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
@@ -338,6 +339,7 @@ const Admin: React.FC = () => {
     const totalProducts = products.length;
     const totalOrders = orders.length;
     const totalStories = blogPosts.length;
+    const totalCustomers = allUsers.length;
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
     const pendingOrders = orders.filter(o => o.status === 'Pendente').length;
     const categoryCounts = products.reduce((acc, p) => {
@@ -345,8 +347,8 @@ const Admin: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
     
-    return { totalProducts, totalOrders, totalStories, totalRevenue, pendingOrders, categoryCounts };
-  }, [products, orders, blogPosts]);
+    return { totalProducts, totalOrders, totalStories, totalRevenue, pendingOrders, categoryCounts, totalCustomers };
+  }, [products, orders, blogPosts, allUsers]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -362,6 +364,7 @@ const Admin: React.FC = () => {
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const matchesSearch = o.id.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+                           (o.customerName || '').toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
                            o.items.some(item => item.name.toLowerCase().includes(orderSearchQuery.toLowerCase()));
       const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
       const matchesDelivery = orderDeliveryFilter === 'all' || o.deliveryType === orderDeliveryFilter;
@@ -762,6 +765,19 @@ const Admin: React.FC = () => {
             <Layout size={20} />
             <span className="font-medium">Configurar Site</span>
           </button>
+
+          <button 
+            onClick={() => setActiveTab('customers')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'customers' 
+                ? 'bg-gold-600 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <Users size={20} />
+            <span className="font-medium">Clientes</span>
+            <span className="ml-auto bg-gray-700 text-xs px-2 py-1 rounded">{allUsers.length}</span>
+          </button>
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
@@ -796,7 +812,7 @@ const Admin: React.FC = () => {
           </button>
         </div>
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-          {(['dashboard', 'products', 'categories', 'orders', 'testimonials', 'blog', 'site'] as const).map(tab => (
+          {(['dashboard', 'products', 'categories', 'orders', 'testimonials', 'blog', 'site', 'customers'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -813,6 +829,7 @@ const Admin: React.FC = () => {
               {tab === 'testimonials' && 'Avaliações'}
               {tab === 'blog' && 'Histórias'}
               {tab === 'site' && 'Site'}
+              {tab === 'customers' && 'Clientes'}
             </button>
           ))}
         </div>
@@ -876,6 +893,16 @@ const Admin: React.FC = () => {
                   </div>
                   <p className="text-3xl font-bold text-gray-900">{stats.totalStories}</p>
                   <p className="text-sm text-gray-500 mt-1">Histórias Publicadas</p>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Users size={24} className="text-indigo-600" />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900">{stats.totalCustomers}</p>
+                  <p className="text-sm text-gray-500 mt-1">Clientes Registados</p>
                 </div>
               </div>
 
@@ -1461,28 +1488,28 @@ const Admin: React.FC = () => {
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-3 mb-2">
-                              <span className="font-bold text-lg text-gray-900">#{order.id}</span>
+                              <span className="font-bold text-lg text-gold-700 bg-gold-50 px-3 py-1 rounded-lg border border-gold-200">#{order.id}</span>
                               {order.customerName && (
-                                <span className="text-gray-600 font-medium flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-gray-200">
-                                  <Users size={14} /> {order.customerName}
+                                <span className="text-gray-900 font-bold text-xl flex items-center gap-2">
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                                    <Users size={20} />
+                                  </div>
+                                  {order.customerName}
                                 </span>
                               )}
                               <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(order.status)}`}>
                                 {getStatusIcon(order.status)}
                                 {order.status}
                               </span>
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ${
-                                order.deliveryType === 'delivery' 
-                                  ? 'bg-rose-100 text-rose-700' 
-                                  : 'bg-cyan-100 text-cyan-700'
-                              }`}>
-                                {order.deliveryType === 'delivery' ? <Truck size={12} /> : <Store size={12} />}
-                                {order.deliveryType === 'delivery' ? 'Entrega' : 'Levantamento'}
-                              </span>
                             </div>
-                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                              {order.customerPhone && (
+                                <a href={`tel:${order.customerPhone}`} className="flex items-center gap-1.5 text-gold-600 font-bold hover:underline">
+                                  <Phone size={14} /> {order.customerPhone}
+                                </a>
+                              )}
                               <span>📅 Pedido: {order.date}</span>
-                              <span>🗓️ Entrega: {order.deliveryDate} às {order.deliveryTime}</span>
+                              <span className="font-bold text-gray-800">🗓️ Entrega: {order.deliveryDate} às {order.deliveryTime}</span>
                               <span>💳 {order.paymentMethod}</span>
                             </div>
                           </div>
@@ -2258,6 +2285,90 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                 {siteSaved ? <CheckCircle size={22} /> : <Save size={22} />}
                 {siteSaved ? 'Alterações Guardadas com Sucesso!' : 'Guardar Todas as Alterações'}
               </button>
+            </div>
+          )}
+
+          {/* === CUSTOMERS === */}
+          {activeTab === 'customers' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Base de Clientes</h1>
+                <p className="text-gray-500">Visualize e contacte os clientes registados na plataforma</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-gray-400 text-[10px] font-bold uppercase tracking-widest border-b border-gray-100">
+                      <tr>
+                        <th className="px-6 py-4">Cliente</th>
+                        <th className="px-6 py-4">Contacto</th>
+                        <th className="px-6 py-4 text-center">Encomendas</th>
+                        <th className="px-6 py-4 text-center">Total Gasto</th>
+                        <th className="px-6 py-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {allUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                            Nenhum cliente registado ainda.
+                          </td>
+                        </tr>
+                      ) : (
+                        allUsers.map(u => {
+                          const userOrdersList = orders.filter(o => o.userId === u.id);
+                          const totalSpent = userOrdersList.reduce((acc, curr) => acc + curr.total, 0);
+                          
+                          return (
+                            <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <img src={u.avatar} alt={u.name} className="w-10 h-10 rounded-full border border-gray-100" />
+                                  <div>
+                                    <p className="font-bold text-gray-800 text-sm">{u.name} {u.surname}</p>
+                                    <p className="text-xs text-gray-500">{u.email}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                {u.phone ? (
+                                  <a href={`tel:${u.phone}`} className="flex items-center gap-2 text-gold-600 font-bold text-sm hover:underline">
+                                    <Phone size={14} /> {u.phone}
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-gray-400 italic">Sem contacto</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-700 font-bold text-sm">
+                                  {userOrdersList.length}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className="font-bold text-gray-900 border-b-2 border-gold-200">
+                                  €{totalSpent.toFixed(2)}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <button 
+                                  onClick={() => {
+                                    setOrderSearchQuery(u.name);
+                                    setActiveTab('orders');
+                                  }}
+                                  className="text-xs font-bold text-gold-600 uppercase tracking-widest hover:text-gold-700 hover:bg-gold-50 px-3 py-1.5 rounded transition-all"
+                                >
+                                  Ver Histórico
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 

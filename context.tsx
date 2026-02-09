@@ -52,10 +52,11 @@ interface ShopContextType {
   firebaseUser: FirebaseUser | null;
   login: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, surname: string, phone: string) => Promise<boolean>;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   
+  allUsers: User[];
   orders: Order[];
   placeOrder: (paymentMethod: string, deliveryInfo: DeliveryInfo) => void;
   updateOrder: (order: Order) => void;
@@ -102,18 +103,33 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // User State - now derived from Firebase Auth
   const [user, setUser] = useState<User | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   // Listen for Firebase Auth state changes
   useEffect(() => {
-    const unsubscribe = authHelpers.onAuthChange((fbUser) => {
+    const unsubscribe = authHelpers.onAuthChange(async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
         const isAdmin = fbUser.email === ADMIN_EMAIL;
+        
+        // Fetch extra user data from Firestore
+        let extraData: Partial<User> = {};
+        try {
+          const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, fbUser.uid));
+          if (userDoc.exists()) {
+            extraData = userDoc.data() as Partial<User>;
+          }
+        } catch (error) {
+          console.error("Error fetching user data from Firestore:", error);
+        }
+
         setUser({
           id: fbUser.uid,
-          name: isAdmin ? 'Admin Rosita' : (fbUser.displayName || 'Cliente'),
+          name: extraData.name || (fbUser.displayName?.split(' ')[0] || (isAdmin ? 'Admin' : 'Cliente')),
+          surname: extraData.surname || (fbUser.displayName?.split(' ').slice(1).join(' ') || ''),
           email: fbUser.email || '',
-          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${fbUser.displayName || (isAdmin ? 'Admin' : 'Cliente')}&background=D4AF37&color=fff`,
+          phone: extraData.phone || '',
+          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || (isAdmin ? 'Admin' : 'Cliente'))}&background=D4AF37&color=fff`,
           isAdmin: isAdmin
         });
       } else {
@@ -221,6 +237,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     unsubscribes.push(unsubOrders);
 
+    // Users listener (only for admin)
+    if (user?.isAdmin) {
+      const unsubUsers = firestoreHelpers.subscribe<User>(COLLECTIONS.USERS, (data) => {
+        setAllUsers(data);
+      });
+      unsubscribes.push(unsubUsers);
+    }
+
     // Set loading to false after a small delay to allow first snapshot
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -231,7 +255,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubscribes.forEach(unsub => unsub());
       clearTimeout(timer);
     };
-  }, [isInitialized]);
+  }, [isInitialized, user?.isAdmin]);
 
   // Local persistence for cart
   useEffect(() => {
@@ -372,9 +396,22 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string, surname: string, phone: string): Promise<boolean> => {
     try {
-      await authHelpers.register(email, password, name);
+      const fbUser = await authHelpers.register(email, password, `${name} ${surname}`);
+      
+      // Save extra info to Firestore
+      const userData: User = {
+        id: fbUser.uid,
+        name,
+        surname,
+        email,
+        phone,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name + ' ' + surname)}&background=D4AF37&color=fff`,
+        isAdmin: false
+      };
+      
+      await setDoc(doc(db, COLLECTIONS.USERS, fbUser.uid), userData);
       return true;
     } catch (error) {
       console.error('Erro no registo:', error);
@@ -426,14 +463,16 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Identificar o cliente atual da melhor forma possível
     const currentUserId = user?.id || firebaseUser?.uid || null;
-    const currentCustomerName = user?.name || firebaseUser?.displayName || 'Cliente';
+    const currentCustomerName = user ? `${user.name} ${user.surname || ''}`.trim() : (firebaseUser?.displayName || 'Cliente');
     const currentCustomerEmail = user?.email || firebaseUser?.email || '';
+    const currentCustomerPhone = user?.phone || '';
 
     const newOrder: Order = {
       id: `CMD-${Date.now().toString().slice(-6)}`,
       userId: currentUserId as string, // Cast para string mesmo se null para manter o tipo, Firebase aceita null
       customerName: currentCustomerName,
       customerEmail: currentCustomerEmail,
+      customerPhone: currentCustomerPhone,
       date: new Date().toLocaleDateString('pt-PT'),
       items: [...cart],
       total: totalWithDelivery,
@@ -494,7 +533,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, firebaseUser, login, loginWithEmail, register, adminLogin, logout,
-      orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
+      allUsers, orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
       isOrderingEnabled, getClosedDayName, isDateClosed,
       isLoading, authLoading
     }}>

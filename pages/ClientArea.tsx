@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useShop } from '../context';
-import { Package, User as UserIcon, LogOut, RefreshCcw, Settings, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Package, User as UserIcon, LogOut, RefreshCcw, Settings, Mail, Lock, AlertCircle, Eye, EyeOff, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ClientArea: React.FC = () => {
@@ -16,6 +16,8 @@ const ClientArea: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,14 +74,18 @@ const ClientArea: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) {
-      setLoginError('Por favor insira o seu nome.');
+    if (!name || !surname) {
+      setLoginError('Por favor insira o seu nome e sobrenome.');
+      return;
+    }
+    if (!phone) {
+      setLoginError('Por favor insira um número de contacto.');
       return;
     }
     setLoginError('');
     setIsLoading(true);
     try {
-      await register(email, password, name);
+      await register(email, password, name, surname, phone);
     } catch (error: any) {
       console.error('Erro no registo:', error);
       if (error.code === 'auth/email-already-in-use') {
@@ -189,22 +195,53 @@ const ClientArea: React.FC = () => {
           ) : (
             <form onSubmit={authMode === 'login' ? handleEmailLogin : authMode === 'register' ? handleRegister : handleAdminLogin} className="space-y-4">
               {authMode === 'register' && (
-                <div className="text-left">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
-                    Nome Completo
-                  </label>
-                  <div className="relative">
-                    <UserIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="O seu nome"
-                      required
-                      className="w-full pl-10 pr-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
-                    />
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-left">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                        Nome
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Ex: Maria"
+                        required
+                        className="w-full px-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="text-left">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                        Sobrenome
+                      </label>
+                      <input
+                        type="text"
+                        value={surname}
+                        onChange={(e) => setSurname(e.target.value)}
+                        placeholder="Ex: Silva"
+                        required
+                        className="w-full px-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="text-left">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      Telemóvel / Contacto
+                    </label>
+                    <div className="relative">
+                      <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="9xx xxx xxx"
+                        required
+                        className="w-full pl-10 pr-4 py-3 border border-gray-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="text-left">
