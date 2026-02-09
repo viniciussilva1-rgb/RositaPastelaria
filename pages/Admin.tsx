@@ -231,12 +231,12 @@ const Admin: React.FC = () => {
     blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
     updateOrder, deleteOrder,
     categories, addCategory, updateCategory, deleteCategory,
-    allUsers
+    allUsers, abandonedCarts, visits, removeAbandonedCart
   } = useShop();
   const navigate = useNavigate();
 
   // Tab States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'blog' | 'site' | 'customers'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'testimonials' | 'blog' | 'site' | 'customers' | 'analytics'>('dashboard');
   
   // Product States
   const [searchQuery, setSearchQuery] = useState('');
@@ -778,6 +778,23 @@ const Admin: React.FC = () => {
             <span className="font-medium">Clientes</span>
             <span className="ml-auto bg-gray-700 text-xs px-2 py-1 rounded">{allUsers.length}</span>
           </button>
+          
+          <button 
+            onClick={() => setActiveTab('analytics')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'analytics' 
+                ? 'bg-gold-600 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <TrendingUp size={20} />
+            <span className="font-medium">Monitorização</span>
+            {abandonedCarts.length > 0 && (
+              <span className="ml-auto bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                {abandonedCarts.length}
+              </span>
+            )}
+          </button>
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
@@ -830,6 +847,7 @@ const Admin: React.FC = () => {
               {tab === 'blog' && 'Histórias'}
               {tab === 'site' && 'Site'}
               {tab === 'customers' && 'Clientes'}
+              {tab === 'analytics' && 'Vendas'}
             </button>
           ))}
         </div>
@@ -2364,6 +2382,137 @@ ${order.subtotal && order.deliveryFee ? `Subtotal: €${order.subtotal.toFixed(2
                             </tr>
                           );
                         })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === ANALYTICS & RECOVERY === */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">Monitorização e Recuperação</h1>
+                  <p className="text-gray-500">Visitas ao site e carrinhos abandonados</p>
+                </div>
+                <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 flex items-center gap-3">
+                   <div className="text-right">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Total de Visitas</p>
+                      <p className="text-xl font-bold text-gray-900">{visits.reduce((acc, v) => acc + v.count, 0)}</p>
+                   </div>
+                   <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                      <TrendingUp size={20} />
+                   </div>
+                </div>
+              </div>
+
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Taxa de Conversão</p>
+                    <div className="flex items-end gap-2">
+                       <p className="text-3xl font-bold text-gray-900">
+                          {visits.length > 0 ? ((orders.length / visits.reduce((acc, v) => acc + v.count, 0)) * 100).toFixed(1) : 0}%
+                       </p>
+                    </div>
+                 </div>
+                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Carrinhos Abandonados</p>
+                    <p className="text-3xl font-bold text-rose-600">{abandonedCarts.length}</p>
+                 </div>
+                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Valor em Risco</p>
+                    <p className="text-3xl font-bold text-amber-600">€{abandonedCarts.reduce((acc, c) => acc + c.total, 0).toFixed(2)}</p>
+                 </div>
+              </div>
+
+              {/* Abandoned Carts List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                   <h2 className="font-bold text-gray-800 flex items-center gap-2">
+                      <ShoppingBag size={18} className="text-rose-500" />
+                      Carrinhos Abandonados (Checkouts Incompletos)
+                   </h2>
+                   <span className="text-xs text-gray-400 italic">Atualizado em tempo real</span>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-gray-400 text-[10px] font-bold uppercase tracking-widest border-b border-gray-100">
+                      <tr>
+                        <th className="px-6 py-4">Cliente / Contacto</th>
+                        <th className="px-6 py-4">Itens</th>
+                        <th className="px-6 py-4">Fase de Abandono</th>
+                        <th className="px-6 py-4">Última Atividade</th>
+                        <th className="px-6 py-4 text-right">Recuperar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {abandonedCarts.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                            Nenhum carrinho abandonado identificado recentemente.
+                          </td>
+                        </tr>
+                      ) : (
+                        abandonedCarts.map(cart => (
+                          <tr key={cart.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-gray-800">{cart.customerName}</span>
+                                <span className="text-xs text-gray-500">{cart.customerEmail}</span>
+                                {cart.customerPhone && (
+                                  <span className="text-xs text-gold-600 font-bold mt-1 inline-flex items-center gap-1">
+                                    <Phone size={10} /> {cart.customerPhone}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-gray-900">€{cart.total.toFixed(2)}</span>
+                                <span className="text-[10px] text-gray-400">{cart.items.length} itens</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                               <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                  cart.step === 'checkout' ? 'bg-amber-100 text-amber-700' : 
+                                  cart.step === 'delivery' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                               }`}>
+                                  {cart.step === 'checkout' ? 'No Pagamento' : 
+                                   cart.step === 'delivery' ? 'Dados de Entrega' : 'No Carrinho'}
+                               </span>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-gray-500">
+                               {new Date(cart.lastUpdate).toLocaleString('pt-PT')}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                               <div className="flex justify-end gap-2">
+                                  {cart.customerPhone && (
+                                    <button 
+                                      onClick={() => {
+                                         const text = `Olá ${cart.customerName}! Vimos que deixou alguns itens no carrinho da Rosita Pastelaria. Podemos ajudar a finalizar a sua encomenda?`;
+                                         window.open(`https://wa.me/${cart.customerPhone.replace(/\s/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                                      }}
+                                      className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors group relative"
+                                      title="Recuperar via WhatsApp"
+                                    >
+                                      <MessageSquare size={16} />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => removeAbandonedCart(cart.id)}
+                                    className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                               </div>
+                            </td>
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>

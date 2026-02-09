@@ -49,7 +49,9 @@ export const COLLECTIONS = {
   TESTIMONIALS: 'testimonials',
   BLOG_POSTS: 'blogPosts',
   SITE_CONFIG: 'siteConfig',
-  USERS: 'users'
+  USERS: 'users',
+  ABANDONED_CARTS: 'abandonedCarts',
+  VISITS: 'visits'
 };
 
 // Helper functions for Firestore operations

@@ -96,7 +96,11 @@ const QuoteModal: React.FC<QuoteModalProps> = ({ product, isOpen, onClose }) => 
 };
 
 const Home: React.FC = () => {
-  const { addToCart, products, siteConfig, testimonials, addTestimonial, isOrderingEnabled } = useShop();
+  const { addToCart, products, siteConfig, testimonials, addTestimonial, isOrderingEnabled, trackVisit } = useShop();
+
+  useEffect(() => {
+    trackVisit();
+  }, []);
   
   const orderingEnabled = isOrderingEnabled();
   

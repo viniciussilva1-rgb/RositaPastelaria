@@ -17,8 +17,15 @@ const TIME_SLOTS = [
 ];
 
 const Cart: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, placeOrder, user, getUnavailableDeliverySlots, isOrderingEnabled, siteConfig, isDateClosed, getClosedDayName } = useShop();
+  const { cart, removeFromCart, updateQuantity, cartTotal, placeOrder, user, getUnavailableDeliverySlots, isOrderingEnabled, siteConfig, isDateClosed, getClosedDayName, updateAbandonedCart } = useShop();
   const [step, setStep] = useState<'cart' | 'delivery' | 'checkout' | 'success'>('cart');
+
+  // Tracking de carrinho abandonado
+  useEffect(() => {
+    if (step !== 'cart' && step !== 'success') {
+      updateAbandonedCart(step as any);
+    }
+  }, [step, cart]);
   const [paymentMethod, setPaymentMethod] = useState('');
   const navigate = useNavigate();
 
@@ -976,7 +983,10 @@ const Cart: React.FC = () => {
                       <input 
                         type="text"
                         value={checkoutName}
-                        onChange={(e) => setCheckoutName(e.target.value)}
+                        onChange={(e) => {
+                          setCheckoutName(e.target.value);
+                          updateAbandonedCart('checkout', { customerName: e.target.value });
+                        }}
                         required
                         placeholder="Nome para a entrega"
                         className="w-full px-4 py-2 bg-white border border-gold-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none text-sm font-medium"
@@ -988,7 +998,10 @@ const Cart: React.FC = () => {
                       <input 
                         type="tel"
                         value={checkoutPhone}
-                        onChange={(e) => setCheckoutPhone(e.target.value)}
+                        onChange={(e) => {
+                          setCheckoutPhone(e.target.value);
+                          updateAbandonedCart('checkout', { customerPhone: e.target.value });
+                        }}
                         required
                         placeholder="9xx xxx xxx"
                         className="w-full px-4 py-2 bg-white border border-gold-100 rounded-lg focus:ring-2 focus:ring-gold-400 outline-none text-sm font-medium"

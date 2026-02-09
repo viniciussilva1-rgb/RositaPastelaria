@@ -58,6 +58,11 @@ interface ShopContextType {
   
   allUsers: User[];
   orders: Order[];
+  abandonedCarts: AbandonedCart[];
+  visits: VisitorStats[];
+  trackVisit: () => void;
+  updateAbandonedCart: (step: AbandonedCart['step'], data?: Partial<AbandonedCart>) => void;
+  removeAbandonedCart: (id: string) => void;
   placeOrder: (paymentMethod: string, deliveryInfo: DeliveryInfo) => void;
   updateOrder: (order: Order) => void;
   deleteOrder: (orderId: string) => void;
@@ -104,6 +109,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // User State - now derived from Firebase Auth
   const [user, setUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
+  const [visits, setVisits] = useState<VisitorStats[]>([]);
 
   // Listen for Firebase Auth state changes
   useEffect(() => {
@@ -245,6 +252,19 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubscribes.push(unsubUsers);
     }
 
+    // Abandoned Carts listener (only for admin)
+    if (user?.isAdmin) {
+      const unsubAbandoned = firestoreHelpers.subscribe<AbandonedCart>(COLLECTIONS.ABANDONED_CARTS, (data) => {
+        setAbandonedCarts(data.sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime()));
+      });
+      unsubscribes.push(unsubAbandoned);
+
+      const unsubVisits = firestoreHelpers.subscribe<VisitorStats>(COLLECTIONS.VISITS, (data) => {
+        setVisits(data);
+      });
+      unsubscribes.push(unsubVisits);
+    }
+
     // Set loading to false after a small delay to allow first snapshot
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -322,6 +342,52 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Testimonial Actions
   const addTestimonial = useCallback(async (testimonial: Testimonial) => {
     await firestoreHelpers.set(COLLECTIONS.TESTIMONIALS, testimonial);
+  }, []);
+
+  const trackVisit = useCallback(async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const visitRef = doc(db, COLLECTIONS.VISITS, today);
+    try {
+      const visitDoc = await getDoc(visitRef);
+      if (visitDoc.exists()) {
+        await setDoc(visitRef, { count: (visitDoc.data().count || 0) + 1 }, { merge: true });
+      } else {
+        await setDoc(visitRef, { count: 1, id: today });
+      }
+    } catch (error) {
+      console.error("Error tracking visit:", error);
+    }
+  }, []);
+
+  const updateAbandonedCart = useCallback(async (step: AbandonedCart['step'], data?: Partial<AbandonedCart>) => {
+    if (cart.length === 0 || !user) return;
+
+    const cartId = `AB-${user.id}`;
+    const abandonedData: AbandonedCart = {
+      id: cartId,
+      userId: user.id,
+      customerName: data?.customerName || `${user.name} ${user.surname || ''}`.trim(),
+      customerEmail: user.email,
+      customerPhone: data?.customerPhone || user.phone || '',
+      items: cart,
+      total: cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0),
+      lastUpdate: new Date().toISOString(),
+      step: step
+    };
+
+    try {
+      await setDoc(doc(db, COLLECTIONS.ABANDONED_CARTS, cartId), abandonedData);
+    } catch (error) {
+      console.error("Error updating abandoned cart:", error);
+    }
+  }, [cart, user]);
+
+  const removeAbandonedCart = useCallback(async (id: string) => {
+    try {
+      await firestoreHelpers.delete(COLLECTIONS.ABANDONED_CARTS, id);
+    } catch (error) {
+      console.error("Error deleting abandoned cart:", error);
+    }
   }, []);
 
   const updateTestimonial = useCallback(async (updatedTestimonial: Testimonial) => {
@@ -512,6 +578,12 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log("Saving order to Firebase...", newOrder);
     try {
       await firestoreHelpers.set(COLLECTIONS.ORDERS, newOrder);
+      
+      // Remover carrinho abandonado se existir
+      if (currentUserId) {
+        await firestoreHelpers.delete(COLLECTIONS.ABANDONED_CARTS, `AB-${currentUserId}`);
+      }
+
       clearCart();
       console.log("Order saved successfully!");
     } catch (error) {
@@ -554,7 +626,8 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       blogPosts, addBlogPost, updateBlogPost, deleteBlogPost,
       cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
       user, firebaseUser, login, loginWithEmail, register, adminLogin, logout,
-      allUsers, orders, placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
+      allUsers, orders, abandonedCarts, visits, trackVisit, updateAbandonedCart, removeAbandonedCart,
+      placeOrder, updateOrder, deleteOrder, getUnavailableDeliverySlots,
       isOrderingEnabled, getClosedDayName, isDateClosed,
       isLoading, authLoading
     }}>

@@ -71,6 +71,23 @@ export interface Order {
   nif?: string;
 }
 
+export interface AbandonedCart {
+  id: string;
+  userId?: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  items: CartItem[];
+  total: number;
+  lastUpdate: string;
+  step: 'cart' | 'delivery' | 'checkout';
+}
+
+export interface VisitorStats {
+  id: string; // YYYY-MM-DD
+  count: number;
+}
+
 export interface BlogPost {
   id: string;
   title: string;
