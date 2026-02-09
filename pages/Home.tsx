@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShoppingBag, Star, Clock, Heart, Quote, X, Send, CheckCircle, MessageCircle, Mail, Phone, AlertCircle } from 'lucide-react';
 import { useShop } from '../context';

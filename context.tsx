@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost } from './types';
+import { CartItem, Product, User, Order, SiteConfig, Testimonial, DeliveryType, BlogPost, AbandonedCart, VisitorStats } from './types';
 import { INITIAL_PRODUCTS, INITIAL_SITE_CONFIG, INITIAL_TESTIMONIALS, BLOG_POSTS } from './constants';
 import { db, COLLECTIONS, firestoreHelpers, authHelpers, ADMIN_EMAIL, FirebaseUser } from './services/firebase';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';

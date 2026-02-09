@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useShop } from '../context';
 import { 
   Trash2, Plus, Minus, ArrowLeft, CheckCircle, 
