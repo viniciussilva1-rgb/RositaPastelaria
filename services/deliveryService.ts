@@ -9,9 +9,9 @@ const STORE_LOCATION = {
 
 // Configuração de taxas de entrega
 const DELIVERY_CONFIG = {
-  freeDeliveryRadius: 9, // km - entrega grátis até 9km
+  freeDeliveryRadius: 0, // km - sem entrega grátis
   maxDeliveryRadius: 30, // km - máximo 30km
-  extraKmRate: 1.20, // € por km extra após os 9km grátis
+  extraKmRate: 1.20, // € por km
 };
 
 export interface DeliveryCalculation {
@@ -192,25 +192,14 @@ export function calculateDeliveryFee(distanceKm: number): DeliveryCalculation {
     };
   }
 
-  // Entrega grátis até 9km
-  if (distance <= DELIVERY_CONFIG.freeDeliveryRadius) {
-    return {
-      distance,
-      deliveryFee: 0,
-      isDeliveryAvailable: true,
-      message: `Entrega grátis! (${distance}km)`
-    };
-  }
-
-  // Calcular taxa para distância extra
-  const extraKm = distance - DELIVERY_CONFIG.freeDeliveryRadius;
-  const deliveryFee = Math.round(extraKm * DELIVERY_CONFIG.extraKmRate * 100) / 100;
+  // Calcular taxa de entrega para toda a distância
+  const deliveryFee = Math.round(distance * DELIVERY_CONFIG.extraKmRate * 100) / 100;
 
   return {
     distance,
     deliveryFee,
     isDeliveryAvailable: true,
-    message: `Taxa de entrega: €${deliveryFee.toFixed(2)} (${distance}km - ${extraKm.toFixed(1)}km extra)`
+    message: `Taxa de entrega: €${deliveryFee.toFixed(2)} (${distance}km)`
   };
 }
 

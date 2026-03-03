@@ -357,7 +357,7 @@ const Cart: React.FC = () => {
                 <span className="font-semibold">📍 Distância:</span> {deliveryCalc.distance}km
               </p>
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">💰 Taxa de entrega:</span> {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+                <span className="font-semibold">💰 Taxa de entrega:</span> €{deliveryCalc.deliveryFee.toFixed(2)}
               </p>
             </>
           )}
@@ -537,7 +537,7 @@ const Cart: React.FC = () => {
                       <span className="font-bold text-gray-800">Entrega ao Domicílio</span>
                     </div>
                     <p className="text-sm text-gray-500">Receba a encomenda no conforto da sua casa.</p>
-                    <p className="text-xs text-gold-600 font-medium mt-2">Grátis até {deliveryConfig.freeDeliveryRadius}km</p>
+                    <p className="text-xs text-gold-600 font-medium mt-2">€{deliveryConfig.extraKmRate.toFixed(2)}/km</p>
                   </button>
                 </div>
 
@@ -548,8 +548,7 @@ const Cart: React.FC = () => {
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-semibold text-blue-800 text-sm mb-2">ℹ️ Informação sobre Entregas</h4>
                       <ul className="text-xs text-blue-700 space-y-1">
-                        <li>• Até {deliveryConfig.freeDeliveryRadius}km: <span className="font-semibold">Entrega Grátis</span></li>
-                        <li>• De {deliveryConfig.freeDeliveryRadius}km a {deliveryConfig.maxDeliveryRadius}km: <span className="font-semibold">€{deliveryConfig.extraKmRate.toFixed(2)}/km extra</span></li>
+                        <li>• Taxa: <span className="font-semibold">€{deliveryConfig.extraKmRate.toFixed(2)}/km</span></li>
                         <li>• Máximo: {deliveryConfig.maxDeliveryRadius}km</li>
                       </ul>
                     </div>
@@ -678,10 +677,7 @@ const Cart: React.FC = () => {
                                 </p>
                                 <p className="text-sm text-green-800">
                                   <span className="font-semibold">Taxa de Entrega:</span>{' '}
-                                  {deliveryCalc.deliveryFee > 0 
-                                    ? <span className="text-lg font-bold">€{deliveryCalc.deliveryFee.toFixed(2)}</span>
-                                    : <span className="text-lg font-bold text-green-600">Grátis!</span>
-                                  }
+                                  <span className="text-lg font-bold">€{deliveryCalc.deliveryFee.toFixed(2)}</span>
                                 </p>
                               </div>
                             )}
@@ -880,8 +876,8 @@ const Cart: React.FC = () => {
                   {deliveryType === 'delivery' && deliveryCalc && (
                     <div className="flex justify-between text-gray-600">
                       <span>Taxa de Entrega</span>
-                      <span className={deliveryCalc.deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
-                        {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+                      <span>
+                        €{deliveryCalc.deliveryFee.toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -956,7 +952,7 @@ const Cart: React.FC = () => {
                           <div className="col-span-2">
                             <p className="text-gray-500">Distância / Taxa</p>
                             <p className="font-medium text-gray-800">
-                              {deliveryCalc.distance}km - {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Entrega Grátis'}
+                              {deliveryCalc.distance}km - €{deliveryCalc.deliveryFee.toFixed(2)}
                             </p>
                           </div>
                         )}
@@ -1086,8 +1082,8 @@ const Cart: React.FC = () => {
                     {deliveryType === 'delivery' && deliveryCalc && (
                       <div className="flex justify-between text-gray-600">
                         <span>Taxa de Entrega ({deliveryCalc.distance}km)</span>
-                        <span className={deliveryCalc.deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
-                          {deliveryCalc.deliveryFee > 0 ? `€${deliveryCalc.deliveryFee.toFixed(2)}` : 'Grátis'}
+                        <span>
+                          €{deliveryCalc.deliveryFee.toFixed(2)}
                         </span>
                       </div>
                     )}
